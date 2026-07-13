@@ -1,0 +1,69 @@
+knowledge_points:
+  - {code: descriptive_statistics, name: 描述性统计, chapter: 第一章 统计基础, dimension: statistics_foundation, difficulty: 1, resource_url: "https://en.wikipedia.org/wiki/Descriptive_statistics"}
+  - {code: probability_distributions, name: 概率分布, chapter: 第一章 统计基础, dimension: statistics_foundation, difficulty: 2, resource_url: "https://en.wikipedia.org/wiki/Probability_distribution"}
+  - {code: sampling_distribution, name: 抽样分布, chapter: 第一章 统计基础, dimension: statistics_foundation, difficulty: 2, resource_url: "https://en.wikipedia.org/wiki/Sampling_distribution"}
+  - {code: parameter_estimation, name: 参数估计, chapter: 第一章 统计基础, dimension: statistics_foundation, difficulty: 3, resource_url: "https://en.wikipedia.org/wiki/Estimation_theory"}
+  - {code: hypothesis_testing, name: 假设检验, chapter: 第一章 统计基础, dimension: statistics_foundation, difficulty: 3, resource_url: "https://en.wikipedia.org/wiki/Statistical_hypothesis_test"}
+  - {code: linear_algebra, name: 线性代数与矩阵运算, chapter: 第二章 线性模型, dimension: linear_models, difficulty: 2, resource_url: "https://en.wikipedia.org/wiki/Linear_algebra"}
+  - {code: simple_linear_regression, name: 简单线性回归, chapter: 第二章 线性模型, dimension: linear_models, difficulty: 2, resource_url: "https://en.wikipedia.org/wiki/Simple_linear_regression"}
+  - {code: multiple_linear_regression, name: 多元线性回归, chapter: 第二章 线性模型, dimension: linear_models, difficulty: 3, resource_url: "https://en.wikipedia.org/wiki/Linear_regression"}
+  - {code: regression_diagnostics, name: 回归诊断, chapter: 第二章 线性模型, dimension: linear_models, difficulty: 4, resource_url: "https://en.wikipedia.org/wiki/Regression_diagnostic"}
+  - {code: generalized_linear_model, name: 广义线性模型, chapter: 第二章 线性模型, dimension: linear_models, difficulty: 4, resource_url: "https://en.wikipedia.org/wiki/Generalized_linear_model"}
+  - {code: bias_variance, name: 偏差-方差权衡, chapter: 第三章 选择与正则化, dimension: selection_regularization, difficulty: 3, resource_url: "https://en.wikipedia.org/wiki/Bias%E2%80%93variance_tradeoff"}
+  - {code: cross_validation, name: 交叉验证, chapter: 第三章 选择与正则化, dimension: selection_regularization, difficulty: 3, resource_url: "https://scikit-learn.org/stable/modules/cross_validation.html"}
+  - {code: feature_standardization, name: 特征标准化, chapter: 第三章 选择与正则化, dimension: selection_regularization, difficulty: 2, resource_url: "https://scikit-learn.org/stable/modules/preprocessing.html"}
+  - {code: ridge_regression, name: 岭回归, chapter: 第三章 选择与正则化, dimension: selection_regularization, difficulty: 4, resource_url: "https://scikit-learn.org/stable/modules/linear_model.html#ridge-regression-and-classification"}
+  - {code: lasso_regression, name: Lasso, chapter: 第三章 选择与正则化, dimension: selection_regularization, difficulty: 4, resource_url: "https://scikit-learn.org/stable/modules/linear_model.html#lasso"}
+  - {code: principal_component_analysis, name: 主成分分析, chapter: 第三章 选择与正则化, dimension: selection_regularization, difficulty: 4, resource_url: "https://scikit-learn.org/stable/modules/decomposition.html#pca"}
+  - {code: logistic_regression, name: 逻辑回归, chapter: 第四章 分类方法, dimension: classification, difficulty: 3, resource_url: "https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression"}
+  - {code: discriminant_analysis, name: 判别分析, chapter: 第四章 分类方法, dimension: classification, difficulty: 4, resource_url: "https://scikit-learn.org/stable/modules/lda_qda.html"}
+  - {code: knn, name: K近邻, chapter: 第四章 分类方法, dimension: classification, difficulty: 3, resource_url: "https://scikit-learn.org/stable/modules/neighbors.html"}
+  - {code: decision_tree, name: 决策树, chapter: 第四章 分类方法, dimension: classification, difficulty: 3, resource_url: "https://scikit-learn.org/stable/modules/tree.html"}
+  - {code: support_vector_machine, name: 支持向量机, chapter: 第四章 分类方法, dimension: classification, difficulty: 5, resource_url: "https://scikit-learn.org/stable/modules/svm.html"}
+  - {code: classification_metrics, name: 分类评价指标, chapter: 第五章 评估与集成, dimension: evaluation_ensemble, difficulty: 2, resource_url: "https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics"}
+  - {code: roc_auc, name: ROC与AUC, chapter: 第五章 评估与集成, dimension: evaluation_ensemble, difficulty: 3, resource_url: "https://scikit-learn.org/stable/modules/model_evaluation.html#roc-metrics"}
+  - {code: random_forest, name: 随机森林, chapter: 第五章 评估与集成, dimension: evaluation_ensemble, difficulty: 4, resource_url: "https://scikit-learn.org/stable/modules/ensemble.html#forest"}
+  - {code: gradient_boosting, name: 梯度提升, chapter: 第五章 评估与集成, dimension: evaluation_ensemble, difficulty: 5, resource_url: "https://scikit-learn.org/stable/modules/ensemble.html#gradient-boosting"}
+
+# Each pair is [prerequisite, target].
+prerequisites:
+  - [descriptive_statistics, probability_distributions]
+  - [probability_distributions, sampling_distribution]
+  - [sampling_distribution, parameter_estimation]
+  - [parameter_estimation, hypothesis_testing]
+  - [descriptive_statistics, simple_linear_regression]
+  - [simple_linear_regression, multiple_linear_regression]
+  - [linear_algebra, multiple_linear_regression]
+  - [multiple_linear_regression, regression_diagnostics]
+  - [multiple_linear_regression, generalized_linear_model]
+  - [hypothesis_testing, generalized_linear_model]
+  - [multiple_linear_regression, bias_variance]
+  - [bias_variance, cross_validation]
+  - [descriptive_statistics, feature_standardization]
+  - [bias_variance, ridge_regression]
+  - [feature_standardization, ridge_regression]
+  - [ridge_regression, lasso_regression]
+  - [feature_standardization, lasso_regression]
+  - [linear_algebra, principal_component_analysis]
+  - [feature_standardization, principal_component_analysis]
+  - [generalized_linear_model, logistic_regression]
+  - [hypothesis_testing, logistic_regression]
+  - [probability_distributions, discriminant_analysis]
+  - [linear_algebra, discriminant_analysis]
+  - [probability_distributions, knn]
+  - [feature_standardization, knn]
+  - [bias_variance, decision_tree]
+  - [bias_variance, support_vector_machine]
+  - [cross_validation, support_vector_machine]
+  - [feature_standardization, support_vector_machine]
+  - [logistic_regression, classification_metrics]
+  - [discriminant_analysis, classification_metrics]
+  - [knn, classification_metrics]
+  - [decision_tree, classification_metrics]
+  - [support_vector_machine, classification_metrics]
+  - [classification_metrics, roc_auc]
+  - [decision_tree, random_forest]
+  - [bias_variance, random_forest]
+  - [decision_tree, gradient_boosting]
+  - [cross_validation, gradient_boosting]
+

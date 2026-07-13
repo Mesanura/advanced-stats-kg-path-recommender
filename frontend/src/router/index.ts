@@ -24,8 +24,7 @@ const router = createRouter({
     {
       path: '/teacher',
       name: 'teacher',
-      component: () => import('../views/RoleHomeView.vue'),
-      props: { title: '教师工作台', description: '班级学情与知识图谱管理将在这里呈现。' },
+      component: () => import('../views/TeacherView.vue'),
       meta: { role: 'teacher' },
     },
     {
