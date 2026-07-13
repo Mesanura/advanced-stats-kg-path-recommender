@@ -1,0 +1,40 @@
+# Local source documents and report deliverables
+docs/报告模板.doc
+docs/基于高级统计方法课程知识图谱的学习行为分析与个性化路径推荐原型系统.*
+docs/项目报告.md
+docs/report-assets/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/coverage/
+playwright-report/
+test-results/
+
+# Runtime data
+*.db
+*.sqlite
+*.sqlite3
+backend/data/
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
