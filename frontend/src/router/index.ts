@@ -31,8 +31,7 @@ const router = createRouter({
     {
       path: '/admin',
       name: 'admin',
-      component: () => import('../views/RoleHomeView.vue'),
-      props: { title: '系统管理', description: '用户、年级和班级管理将在这里呈现。' },
+      component: () => import('../views/AdminView.vue'),
       meta: { role: 'admin' },
     },
   ],
