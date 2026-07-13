@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.config import get_settings
 
@@ -18,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(health_router, prefix=settings.api_prefix)
+app.include_router(auth_router, prefix=settings.api_prefix)
 
 frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if frontend_dist.exists():
@@ -28,4 +30,3 @@ if frontend_dist.exists():
     @app.get("/{path:path}", include_in_schema=False)
     def spa_fallback(path: str) -> FileResponse:
         return FileResponse(frontend_dist / "index.html")
-

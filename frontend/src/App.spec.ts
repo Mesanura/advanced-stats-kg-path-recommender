@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { createPinia } from 'pinia'
 import { describe, expect, it } from 'vitest'
 
 import App from './App.vue'
@@ -15,7 +16,7 @@ describe('App', () => {
     await router.push('/')
     await router.isReady()
 
-    const wrapper = mount(App, { global: { plugins: [router, ElementPlus] } })
+    const wrapper = mount(App, { global: { plugins: [createPinia(), router, ElementPlus] } })
     expect(wrapper.text()).toContain('课程知识图谱学习路径推荐系统')
   })
 })
