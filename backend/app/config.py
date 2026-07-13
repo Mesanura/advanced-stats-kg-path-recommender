@@ -1,6 +1,10 @@
 from functools import lru_cache
+from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -12,6 +16,17 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 480
     frontend_origin: str = "http://127.0.0.1:5173"
 
+    @field_validator("database_url")
+    @classmethod
+    def normalize_sqlite_url(cls, value: str) -> str:
+        prefix = "sqlite:///"
+        if not value.startswith(prefix) or value == "sqlite:///:memory:":
+            return value
+        path = Path(value.removeprefix(prefix))
+        if not path.is_absolute():
+            path = PROJECT_ROOT / path
+        return f"{prefix}{path.resolve().as_posix()}"
+
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
@@ -22,4 +37,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

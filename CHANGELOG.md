@@ -9,4 +9,5 @@
 ### Added
 
 - 初始化项目管理规范。
-
+- 搭建 FastAPI、Vue 3 工程骨架和本地脚本。
+- 建立核心领域模型、SQLite 会话管理和 Alembic 首版迁移。
