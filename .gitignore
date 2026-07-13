@@ -21,6 +21,7 @@ htmlcov/
 
 # Node
 node_modules/
+.pnpm-store/
 frontend/dist/
 frontend/coverage/
 playwright-report/
@@ -37,4 +38,3 @@ backend/data/
 .vscode/
 .DS_Store
 Thumbs.db
-
