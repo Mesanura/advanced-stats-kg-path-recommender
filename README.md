@@ -21,9 +21,33 @@ scripts/     Windows 本地安装、开发、测试与运行脚本
 docs/        迭代计划与运行手册
 ```
 
-详细安装和操作步骤将在 `docs/运行手册.md` 中提供。
+## 快速开始
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run.ps1
+```
+
+浏览器访问 `http://127.0.0.1:8000`。完整安装、数据重置、测试、角色操作和故障排查见 [运行手册](docs/运行手册.md)。
+
+## 演示账号
+
+| 角色 | 用户名 | 密码 |
+|---|---|---|
+| 管理员 | `admin` | `Admin@123456` |
+| 教师 | `teacher01` / `teacher02` | `Teacher@123456` |
+| 学生 | `20260001` - `20260050` | `Student@123456` |
+
+## 测试
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
+Set-Location frontend
+pnpm test:e2e
+```
+
+交付基线：后端 37 项测试通过、覆盖率 86%；前端 13 项测试通过、语句/行覆盖率 94.58%；Playwright 三角色工作流 3 项通过。
 
 ## 版本管理
 
 项目采用 Conventional Commits，提交前缀使用英文，说明使用中文。每个功能在独立分支完成并通过测试后合并到 `main`。
-
