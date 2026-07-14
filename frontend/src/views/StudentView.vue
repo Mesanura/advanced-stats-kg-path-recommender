@@ -14,6 +14,10 @@ const selectedTarget = ref<number>()
 const selectedNode = ref<PathNode>()
 const drawer = ref(false)
 const generating = ref(false)
+const visitMinutes = ref(10)
+const videoProgress = ref(60)
+const exerciseCorrect = ref(true)
+const feedbackLoading = ref(false)
 const dimensionLabels: Record<AbilityDimension, string> = {
   statistics_foundation: '统计基础', linear_models: '线性模型', selection_regularization: '选择与正则化',
   classification: '分类方法', evaluation_ensemble: '评估与集成',
@@ -43,6 +47,19 @@ async function generatePath(): Promise<void> {
 }
 
 function openNode(node: PathNode): void { selectedNode.value = node; drawer.value = true }
+async function submitFeedback(type: 'visit' | 'video' | 'exercise'): Promise<void> {
+  if (!selectedNode.value) return
+  feedbackLoading.value = true
+  try {
+    if (type === 'visit') await api.post('/students/me/behavior/visits', { knowledge_point_id: selectedNode.value.knowledge_point_id, duration_seconds: visitMinutes.value * 60 })
+    if (type === 'video') await api.put('/students/me/behavior/video-progress', { knowledge_point_id: selectedNode.value.knowledge_point_id, progress_percent: videoProgress.value })
+    if (type === 'exercise') await api.post('/students/me/behavior/exercises', { knowledge_point_id: selectedNode.value.knowledge_point_id, is_correct: exerciseCorrect.value })
+    ElMessage.success('学习进展已更新，请重新生成路径')
+    drawer.value = false
+    await load()
+  } catch { ElMessage.error('学习进展保存失败') }
+  finally { feedbackLoading.value = false }
+}
 onMounted(load)
 </script>
 
@@ -74,7 +91,7 @@ onMounted(load)
     </main>
 
     <el-drawer v-model="drawer" title="知识点详情" size="380px">
-      <template v-if="selectedNode"><p class="section-label">STEP {{ selectedNode.sequence }}</p><h2>{{ selectedNode.name }}</h2><div class="detail-list"><div><span>当前掌握度</span><strong>{{ Math.round(selectedNode.mastery_score * 100) }}%</strong></div><div><span>难度</span><strong>{{ selectedNode.difficulty }} / 5</strong></div></div><h3>前置条件</h3><div class="prerequisite-list"><el-tag v-for="item in selectedNode.prerequisites" :key="item" effect="plain">{{ item }}</el-tag><span v-if="!selectedNode.prerequisites.length">基础知识点</span></div><el-link class="resource-link" type="primary" :href="selectedNode.resource_url" target="_blank" :icon="Link">打开学习资源</el-link></template>
+      <template v-if="selectedNode"><p class="section-label">STEP {{ selectedNode.sequence }}</p><h2>{{ selectedNode.name }}</h2><div class="detail-list"><div><span>当前掌握度</span><strong>{{ Math.round(selectedNode.mastery_score * 100) }}%</strong></div><div><span>难度</span><strong>{{ selectedNode.difficulty }} / 5</strong></div></div><h3>前置条件</h3><div class="prerequisite-list"><el-tag v-for="item in selectedNode.prerequisites" :key="item" effect="plain">{{ item }}</el-tag><span v-if="!selectedNode.prerequisites.length">基础知识点</span></div><el-link class="resource-link" type="primary" :href="selectedNode.resource_url" target="_blank" :icon="Link">打开学习资源</el-link><el-divider /><h3>学习进展</h3><div class="feedback-control"><span>访问时长</span><el-input-number v-model="visitMinutes" :min="1" :max="120" /><el-button :loading="feedbackLoading" @click="submitFeedback('visit')">记录</el-button></div><div class="feedback-control vertical"><span>视频进度 {{ videoProgress }}%</span><el-slider v-model="videoProgress" :min="0" :max="100" /><el-button :loading="feedbackLoading" @click="submitFeedback('video')">更新进度</el-button></div><div class="feedback-control vertical"><span>练习结果</span><el-segmented v-model="exerciseCorrect" :options="[{label:'正确',value:true},{label:'错误',value:false}]" /><el-button type="primary" :loading="feedbackLoading" @click="submitFeedback('exercise')">提交结果</el-button></div></template>
     </el-drawer>
   </AppShell>
 </template>
