@@ -12,6 +12,7 @@ from app.api.knowledge import router as knowledge_router
 from app.api.diagnosis import router as diagnosis_router
 from app.api.teacher import router as teacher_router
 from app.api.recommendations import router as recommendations_router
+from app.api.students import router as students_router
 from app.config import get_settings
 
 settings = get_settings()
@@ -30,6 +31,7 @@ app.include_router(knowledge_router, prefix=settings.api_prefix)
 app.include_router(diagnosis_router, prefix=settings.api_prefix)
 app.include_router(teacher_router, prefix=settings.api_prefix)
 app.include_router(recommendations_router, prefix=settings.api_prefix)
+app.include_router(students_router, prefix=settings.api_prefix)
 
 frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if frontend_dist.exists():

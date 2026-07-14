@@ -152,6 +152,45 @@ h1 { margin: 0; font-size: 30px; line-height: 1.3; letter-spacing: 0; }
 .weight-total { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f1f4f3; }
 .weight-total span { color: #69757e; }
 .weight-total strong { font-size: 22px; }
+.target-action { display: flex; gap: 8px; }
+.target-action .el-select { width: 260px; }
+.student-summary-band { display: grid; grid-template-columns: .75fr 1.3fr .95fr; min-height: 300px; margin-bottom: 24px; border-top: 2px solid #244f48; background: #fff; }
+.profile-score, .weak-summary { padding: 34px 28px; }
+.profile-score { display: flex; flex-direction: column; justify-content: center; border-right: 1px solid #e1e5e8; }
+.profile-score span, .weak-summary > span { color: #74808a; font-size: 12px; }
+.profile-score strong { margin: 8px 0 18px; font-size: 44px; }
+.student-radar { min-width: 0; border-right: 1px solid #e1e5e8; }
+.student-radar .base-chart { height: 300px; }
+.weak-summary strong { display: block; margin: 10px 0 18px; color: #b33c33; font-size: 38px; }
+.weak-summary .el-tag { margin: 0 6px 6px 0; }
+.mastery-section, .path-section { margin-top: 24px; padding: 22px; border-top: 2px solid #d59a31; background: #fff; }
+.heat-legend { display: flex; gap: 6px; align-items: center; color: #76818a; font-size: 11px; }
+.heat-legend span { width: 10px; height: 10px; margin-left: 8px; }
+.mastery-heatmap { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.mastery-cell { display: flex; min-width: 0; min-height: 68px; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid transparent; border-radius: 3px; text-align: left; cursor: default; }
+.mastery-cell span { min-width: 0; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.mastery-cell strong { font-size: 17px; }
+.mastery-cell.mastered, .heat-legend .mastered { color: #175f50; background: #d7eee8; }
+.mastery-cell.learning, .heat-legend .learning { color: #79570f; background: #f5e5b6; }
+.mastery-cell.weak, .heat-legend .weak { color: #8f2f28; background: #f2d2cf; }
+.mastery-cell.unknown, .heat-legend .unknown { color: #606a72; background: #e5e8ea; }
+.learning-path { display: flex; gap: 0; align-items: stretch; overflow-x: auto; padding: 20px 0 8px; }
+.path-node { position: relative; display: flex; min-width: 170px; flex: 1; align-items: center; gap: 10px; padding: 14px 16px; border: 0; border-top: 3px solid #9ca7ae; background: #f5f7f8; text-align: left; cursor: pointer; }
+.path-node + .path-node::before { position: absolute; top: 23px; left: -5px; width: 10px; height: 10px; border-top: 2px solid #8b969e; border-right: 2px solid #8b969e; content: ''; transform: rotate(45deg); }
+.path-node.mastered { border-top-color: #247a68; }
+.path-node.target { border-top-color: #c9362b; background: #f9e9e7; }
+.path-index { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; border-radius: 50%; color: #fff; background: #697780; font-size: 12px; }
+.path-node.mastered .path-index { background: #247a68; }
+.path-node.target .path-index { background: #c9362b; }
+.path-copy strong, .path-copy small { display: block; }
+.path-copy small { margin-top: 4px; color: #7b858d; }
+.detail-list { display: grid; grid-template-columns: 1fr 1fr; margin: 24px 0; border-top: 1px solid #dfe4e6; border-bottom: 1px solid #dfe4e6; }
+.detail-list > div { padding: 16px 0; }
+.detail-list span, .detail-list strong { display: block; }
+.detail-list span { color: #7b858e; font-size: 12px; }
+.detail-list strong { margin-top: 4px; }
+.prerequisite-list .el-tag { margin: 0 6px 6px 0; }
+.resource-link { margin-top: 28px; }
 
 @media (max-width: 760px) {
   .app-shell { grid-template-columns: 68px minmax(0, 1fr); }
@@ -167,6 +206,11 @@ h1 { margin: 0; font-size: 30px; line-height: 1.3; letter-spacing: 0; }
   .metric-strip > div:nth-child(2) { border-right: 0; }
   .analytics-grid { grid-template-columns: 1fr; }
   .settings-band { grid-template-columns: 1fr; }
+  .target-action { width: 100%; }
+  .target-action .el-select { width: 100%; }
+  .student-summary-band { grid-template-columns: 1fr; }
+  .profile-score, .student-radar { border-right: 0; border-bottom: 1px solid #e1e5e8; }
+  .mastery-heatmap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settings-group + .settings-group { border-top: 1px solid #e1e5e8; border-left: 0; }
   .form-grid { grid-template-columns: 1fr; gap: 0; }
 }

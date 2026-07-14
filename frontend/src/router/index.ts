@@ -17,8 +17,7 @@ const router = createRouter({
     {
       path: '/student',
       name: 'student',
-      component: () => import('../views/RoleHomeView.vue'),
-      props: { title: '学生学习中心', description: '个人掌握度与推荐路径将在这里呈现。' },
+      component: () => import('../views/StudentView.vue'),
       meta: { role: 'student' },
     },
     {
