@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 from app.enums import AbilityDimension, MasteryAlgorithm
 
@@ -53,3 +53,34 @@ class TeacherOverview(BaseModel):
     weak_top5: list[KnowledgeStatistic]
     attention_students: list[AttentionStudent]
 
+
+class RecommendationConfigPayload(BaseModel):
+    diagnostic_algorithm: MasteryAlgorithm
+    min_path_length: int = Field(ge=1, le=12)
+    max_path_length: int = Field(ge=1, le=12)
+    mastery_threshold: float = Field(ge=0, le=1)
+    weak_threshold: float = Field(ge=0, le=1)
+    weak_priority_weight: float = Field(ge=0, le=1)
+    mastered_alignment_weight: float = Field(ge=0, le=1)
+    length_penalty_weight: float = Field(ge=0, le=1)
+    difficulty_jump_weight: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_config(self) -> "RecommendationConfigPayload":
+        if self.max_path_length < self.min_path_length:
+            raise ValueError("最大路径长度不能小于最短路径长度")
+        if self.weak_threshold >= self.mastery_threshold:
+            raise ValueError("薄弱阈值必须小于掌握阈值")
+        total = (
+            self.weak_priority_weight
+            + self.mastered_alignment_weight
+            + self.length_penalty_weight
+            + self.difficulty_jump_weight
+        )
+        if abs(total - 1.0) > 0.001:
+            raise ValueError("四项推荐权重之和必须为 1")
+        return self
+
+
+class RecommendationConfigRead(RecommendationConfigPayload):
+    id: int

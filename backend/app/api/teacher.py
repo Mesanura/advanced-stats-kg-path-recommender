@@ -5,8 +5,23 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.dependencies import require_roles
 from app.db import get_db
 from app.enums import MasteryAlgorithm, Role
-from app.models import Classroom, Grade, StudentProfile, TeacherClass, User
-from app.schemas.teacher import ScopeClass, TeacherOverview, TeacherScope
+from app.enums import PathState
+from app.models import (
+    Classroom,
+    Grade,
+    LearningPath,
+    RecommendationConfig,
+    StudentProfile,
+    TeacherClass,
+    User,
+)
+from app.schemas.teacher import (
+    RecommendationConfigPayload,
+    RecommendationConfigRead,
+    ScopeClass,
+    TeacherOverview,
+    TeacherScope,
+)
 from app.services.analytics import build_overview
 
 router = APIRouter(
@@ -98,3 +113,50 @@ def overview(
         algorithm=algorithm,
     )
 
+
+def config_to_read(config: RecommendationConfig) -> RecommendationConfigRead:
+    return RecommendationConfigRead(
+        id=config.id,
+        diagnostic_algorithm=config.diagnostic_algorithm,
+        min_path_length=config.min_path_length,
+        max_path_length=config.max_path_length,
+        mastery_threshold=config.mastery_threshold,
+        weak_threshold=config.weak_threshold,
+        weak_priority_weight=config.weak_priority_weight,
+        mastered_alignment_weight=config.mastered_alignment_weight,
+        length_penalty_weight=config.length_penalty_weight,
+        difficulty_jump_weight=config.difficulty_jump_weight,
+    )
+
+
+@router.get("/recommendation-config", response_model=RecommendationConfigRead)
+def get_recommendation_config(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.TEACHER, Role.ADMIN)),
+) -> RecommendationConfigRead:
+    del user
+    config = db.get(RecommendationConfig, 1)
+    if config is None:
+        config = RecommendationConfig(id=1)
+        db.add(config)
+        db.commit()
+    return config_to_read(config)
+
+
+@router.put("/recommendation-config", response_model=RecommendationConfigRead)
+def update_recommendation_config(
+    payload: RecommendationConfigPayload,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.TEACHER, Role.ADMIN)),
+) -> RecommendationConfigRead:
+    config = db.get(RecommendationConfig, 1)
+    if config is None:
+        config = RecommendationConfig(id=1)
+        db.add(config)
+    for key, value in payload.model_dump().items():
+        setattr(config, key, value)
+    config.updated_by = user.id
+    for path in db.scalars(select(LearningPath).where(LearningPath.state == PathState.CURRENT)):
+        path.state = PathState.STALE
+    db.commit()
+    return config_to_read(config)
