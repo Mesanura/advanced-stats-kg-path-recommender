@@ -17,15 +17,24 @@
 backend/     FastAPI 后端、算法与测试
 frontend/    Vue 3 前端与组件测试
 data/seed/   可审查的知识图谱和种子数据
-scripts/     Windows 本地安装、开发、测试与运行脚本
+scripts/     PowerShell/Bash 本地安装、开发、测试与运行脚本
 docs/        迭代计划与运行手册
 ```
 
 ## 快速开始
 
+PowerShell：
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run.ps1
+```
+
+Windows Git Bash、Linux 或 macOS：
+
+```bash
+./scripts/setup.sh
+./scripts/run.sh
 ```
 
 浏览器访问 `http://127.0.0.1:8000`。完整安装、数据重置、测试、角色操作和故障排查见 [运行手册](docs/运行手册.md)。
@@ -40,9 +49,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run.ps1
 
 ## 测试
 
+PowerShell：
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
-Set-Location frontend
+```
+
+Bash：
+
+```bash
+./scripts/test.sh
+```
+
+端到端测试：
+
+```bash
+cd frontend
 pnpm test:e2e
 ```
 

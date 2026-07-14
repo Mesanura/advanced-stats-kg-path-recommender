@@ -4,6 +4,14 @@
 
 格式参考 Keep a Changelog，版本号遵循语义化版本。
 
+## [1.0.1] - 2026-07-14
+
+### Added
+
+- 新增 Bash 环境下的安装、开发、测试和单地址运行脚本。
+- 支持 Linux、macOS 以及 Windows Git Bash，并自动识别对应虚拟环境与 pnpm 命令。
+- 补充 PowerShell/Bash 双环境运行与故障排查说明。
+
 ## [1.0.0] - 2026-07-14
 
 ### Added
