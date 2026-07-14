@@ -26,6 +26,8 @@ Push-Location backend
 try {
     & "$Root\.venv\Scripts\python.exe" -m alembic upgrade head
     if ($LASTEXITCODE -ne 0) { throw "数据库迁移失败，退出码：$LASTEXITCODE" }
+    & "$Root\.venv\Scripts\python.exe" -m app.cli seed
+    if ($LASTEXITCODE -ne 0) { throw "演示数据初始化失败，退出码：$LASTEXITCODE" }
 } finally {
     Pop-Location
 }
