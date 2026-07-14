@@ -6,9 +6,11 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { api } from '../api/client'
 import AppShell from '../components/AppShell.vue'
 import KnowledgeGraph from '../components/KnowledgeGraph.vue'
+import TeacherOverview from '../components/TeacherOverview.vue'
 import type { AbilityDimension, KnowledgeGraphData, KnowledgePoint } from '../types/knowledge'
 
 const points = ref<KnowledgePoint[]>([])
+const activeSection = ref<'overview' | 'knowledge'>('overview')
 const graph = ref<KnowledgeGraphData>({ nodes: [], edges: [] })
 const mode = ref<'table' | 'graph'>('table')
 const query = ref('')
@@ -86,8 +88,10 @@ onMounted(load)
 </script>
 
 <template>
-  <AppShell section="知识图谱">
-    <main class="page-content">
+  <AppShell :section="activeSection === 'overview' ? '学情概览' : '知识图谱'">
+    <div class="teacher-section-tabs"><el-segmented v-model="activeSection" :options="[{label:'学情概览',value:'overview'},{label:'知识图谱',value:'knowledge'}]" /></div>
+    <TeacherOverview v-if="activeSection === 'overview'" />
+    <main v-else class="page-content">
       <div class="page-title-row">
         <div><p class="section-label">KNOWLEDGE GRAPH</p><h1>知识点与前置关系</h1><p>{{ points.length }} 个知识点，{{ graph.edges.length }} 条前置关系</p></div>
         <div class="page-actions"><el-button :icon="Refresh" @click="importDefaults">载入默认图谱</el-button><el-button :icon="Connection" @click="edgeDialog = true">添加关系</el-button><el-button type="primary" :icon="Plus" @click="openCreate">新增知识点</el-button></div>
@@ -118,4 +122,3 @@ onMounted(load)
     </el-dialog>
   </AppShell>
 </template>
-
