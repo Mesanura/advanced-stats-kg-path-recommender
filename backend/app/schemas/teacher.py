@@ -84,3 +84,20 @@ class RecommendationConfigPayload(BaseModel):
 
 class RecommendationConfigRead(RecommendationConfigPayload):
     id: int
+
+
+class TeacherStudentItem(BaseModel):
+    student_id: int
+    student_no: str
+    display_name: str
+    classroom_id: int
+    classroom_name: str
+    average_mastery: float
+    weak_count: int
+
+
+class PaginatedTeacherStudents(BaseModel):
+    items: list[TeacherStudentItem]
+    total: int
+    page: int
+    page_size: int

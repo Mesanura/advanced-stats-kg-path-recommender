@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import require_roles
+from app.api.diagnosis import build_diagnosis, ensure_student_access, student_or_404
 from app.db import get_db
 from app.enums import MasteryAlgorithm, Role
 from app.enums import PathState
@@ -18,10 +19,13 @@ from app.models import (
 from app.schemas.teacher import (
     RecommendationConfigPayload,
     RecommendationConfigRead,
+    PaginatedTeacherStudents,
     ScopeClass,
     TeacherOverview,
     TeacherScope,
+    TeacherStudentItem,
 )
+from app.schemas.diagnosis import StudentDiagnosisRead
 from app.services.analytics import build_overview
 
 router = APIRouter(
@@ -160,3 +164,76 @@ def update_recommendation_config(
         path.state = PathState.STALE
     db.commit()
     return config_to_read(config)
+
+
+@router.get("/students", response_model=PaginatedTeacherStudents)
+def list_students(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    query: str | None = Query(default=None, max_length=80),
+    class_id: int | None = None,
+    algorithm: MasteryAlgorithm = MasteryAlgorithm.BKT,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.TEACHER, Role.ADMIN)),
+) -> PaginatedTeacherStudents:
+    classes = assigned_class_ids(db, user)
+    if class_id is not None:
+        if class_id not in classes:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看该班级")
+        classes = {class_id}
+    statement = (
+        select(StudentProfile)
+        .join(StudentProfile.user)
+        .where(StudentProfile.classroom_id.in_(classes))
+    )
+    if query:
+        pattern = f"%{query.strip()}%"
+        statement = statement.where(
+            or_(StudentProfile.student_no.ilike(pattern), User.display_name.ilike(pattern))
+        )
+    total = db.scalar(select(func.count()).select_from(statement.subquery())) or 0
+    students = list(
+        db.scalars(
+            statement.options(
+                selectinload(StudentProfile.user), selectinload(StudentProfile.classroom)
+            )
+            .order_by(StudentProfile.student_no)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+    )
+    items: list[TeacherStudentItem] = []
+    for student in students:
+        diagnosis = build_diagnosis(db, student, algorithm)
+        weak_count = sum(item.status.value in ("weak", "unknown") for item in diagnosis.items)
+        items.append(
+            TeacherStudentItem(
+                student_id=student.id,
+                student_no=student.student_no,
+                display_name=student.user.display_name,
+                classroom_id=student.classroom_id,
+                classroom_name=student.classroom.name,
+                average_mastery=round(
+                    sum(item.score for item in diagnosis.items) / len(diagnosis.items), 6
+                ),
+                weak_count=weak_count,
+            )
+        )
+    return PaginatedTeacherStudents(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/students/{student_id}/diagnosis", response_model=StudentDiagnosisRead)
+def teacher_student_diagnosis(
+    student_id: int,
+    algorithm: MasteryAlgorithm = MasteryAlgorithm.BKT,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.TEACHER, Role.ADMIN)),
+) -> StudentDiagnosisRead:
+    student = student_or_404(db, student_id)
+    ensure_student_access(db, user, student)
+    return build_diagnosis(db, student, algorithm)

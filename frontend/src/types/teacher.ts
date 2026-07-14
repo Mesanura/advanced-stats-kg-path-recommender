@@ -27,4 +27,18 @@ export interface TeacherOverviewData {
     weak_count: number
   }[]
 }
-
+export interface TeacherStudent {
+  student_id: number
+  student_no: string
+  display_name: string
+  classroom_id: number
+  classroom_name: string
+  average_mastery: number
+  weak_count: number
+}
+export interface PaginatedTeacherStudents {
+  items: TeacherStudent[]
+  total: number
+  page: number
+  page_size: number
+}

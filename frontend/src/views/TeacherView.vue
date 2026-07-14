@@ -8,10 +8,11 @@ import AppShell from '../components/AppShell.vue'
 import KnowledgeGraph from '../components/KnowledgeGraph.vue'
 import TeacherOverview from '../components/TeacherOverview.vue'
 import RecommendationSettings from '../components/RecommendationSettings.vue'
+import StudentDiagnostics from '../components/StudentDiagnostics.vue'
 import type { AbilityDimension, KnowledgeGraphData, KnowledgePoint } from '../types/knowledge'
 
 const points = ref<KnowledgePoint[]>([])
-const activeSection = ref<'overview' | 'knowledge' | 'settings'>('overview')
+const activeSection = ref<'overview' | 'students' | 'knowledge' | 'settings'>('overview')
 const graph = ref<KnowledgeGraphData>({ nodes: [], edges: [] })
 const mode = ref<'table' | 'graph'>('table')
 const query = ref('')
@@ -89,9 +90,10 @@ onMounted(load)
 </script>
 
 <template>
-  <AppShell :section="activeSection === 'overview' ? '学情概览' : activeSection === 'knowledge' ? '知识图谱' : '推荐策略'">
-    <div class="teacher-section-tabs"><el-segmented v-model="activeSection" :options="[{label:'学情概览',value:'overview'},{label:'知识图谱',value:'knowledge'},{label:'推荐策略',value:'settings'}]" /></div>
+  <AppShell :section="activeSection === 'overview' ? '学情概览' : activeSection === 'students' ? '学生诊断' : activeSection === 'knowledge' ? '知识图谱' : '推荐策略'">
+    <div class="teacher-section-tabs"><el-segmented v-model="activeSection" :options="[{label:'学情概览',value:'overview'},{label:'学生诊断',value:'students'},{label:'知识图谱',value:'knowledge'},{label:'推荐策略',value:'settings'}]" /></div>
     <TeacherOverview v-if="activeSection === 'overview'" />
+    <StudentDiagnostics v-else-if="activeSection === 'students'" />
     <RecommendationSettings v-else-if="activeSection === 'settings'" />
     <main v-else class="page-content">
       <div class="page-title-row">
