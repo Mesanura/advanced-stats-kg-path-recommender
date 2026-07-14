@@ -30,6 +30,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "演示数据初始化失败，退出码：$LASTEXITCODE" }
     & "$Root\.venv\Scripts\python.exe" -m app.cli diagnose --algorithm rule
     if ($LASTEXITCODE -ne 0) { throw "规则法诊断失败，退出码：$LASTEXITCODE" }
+    & "$Root\.venv\Scripts\python.exe" -m app.cli diagnose --algorithm bkt
+    if ($LASTEXITCODE -ne 0) { throw "BKT 诊断失败，退出码：$LASTEXITCODE" }
 } finally {
     Pop-Location
 }

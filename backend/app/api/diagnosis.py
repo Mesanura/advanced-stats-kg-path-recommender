@@ -8,9 +8,24 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.dependencies import get_current_user, require_roles
 from app.db import get_db
 from app.enums import MasteryAlgorithm, MasteryStatus, Role
-from app.models import KnowledgePoint, MasteryResult, StudentProfile, TeacherClass, User
-from app.schemas.diagnosis import MasteryItemRead, RecomputeResponse, StudentDiagnosisRead
-from app.services.diagnosis import recompute_rule_mastery
+from app.enums import PathState
+from app.models import (
+    KnowledgePoint,
+    LearningPath,
+    MasteryResult,
+    RecommendationConfig,
+    StudentProfile,
+    TeacherClass,
+    User,
+)
+from app.schemas.diagnosis import (
+    AlgorithmEvaluation,
+    AlgorithmSelection,
+    MasteryItemRead,
+    RecomputeResponse,
+    StudentDiagnosisRead,
+)
+from app.services.diagnosis import evaluate_algorithms, recompute_bkt_mastery, recompute_rule_mastery
 
 router = APIRouter(prefix="/diagnosis", tags=["diagnosis"])
 
@@ -53,11 +68,12 @@ def build_diagnosis(
         )
         .order_by(KnowledgePoint.chapter, KnowledgePoint.id)
     ).all()
-    if not rows and algorithm == MasteryAlgorithm.RULE:
-        recompute_rule_mastery(db, [student.id])
-        return build_diagnosis(db, student, algorithm)
     if not rows:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="该算法尚未生成诊断结果")
+        if algorithm == MasteryAlgorithm.RULE:
+            recompute_rule_mastery(db, [student.id])
+        else:
+            recompute_bkt_mastery(db, [student.id])
+        return build_diagnosis(db, student, algorithm)
 
     items = [
         MasteryItemRead(
@@ -119,8 +135,6 @@ def recompute(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles(Role.TEACHER, Role.ADMIN)),
 ) -> RecomputeResponse:
-    if algorithm != MasteryAlgorithm.RULE:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="该算法尚未实现")
     if user.role == Role.ADMIN:
         student_ids = list(db.scalars(select(StudentProfile.id)))
     else:
@@ -128,8 +142,48 @@ def recompute(
         student_ids = list(
             db.scalars(select(StudentProfile.id).where(StudentProfile.classroom_id.in_(classroom_ids)))
         )
-    return RecomputeResponse(
-        algorithm=algorithm,
-        results_updated=recompute_rule_mastery(db, student_ids),
+    updated = (
+        recompute_rule_mastery(db, student_ids)
+        if algorithm == MasteryAlgorithm.RULE
+        else recompute_bkt_mastery(db, student_ids)
+    )
+    return RecomputeResponse(algorithm=algorithm, results_updated=updated)
+
+
+@router.get("/algorithm", response_model=AlgorithmSelection)
+def get_algorithm(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.TEACHER, Role.ADMIN)),
+) -> AlgorithmSelection:
+    del user
+    config = db.get(RecommendationConfig, 1)
+    return AlgorithmSelection(
+        algorithm=config.diagnostic_algorithm if config else MasteryAlgorithm.BKT
     )
 
+
+@router.put("/algorithm", response_model=AlgorithmSelection)
+def select_algorithm(
+    payload: AlgorithmSelection,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.TEACHER, Role.ADMIN)),
+) -> AlgorithmSelection:
+    config = db.get(RecommendationConfig, 1)
+    if config is None:
+        config = RecommendationConfig(id=1)
+        db.add(config)
+    config.diagnostic_algorithm = payload.algorithm
+    config.updated_by = user.id
+    for path in db.scalars(select(LearningPath).where(LearningPath.state == PathState.CURRENT)):
+        path.state = PathState.STALE
+    db.commit()
+    return payload
+
+
+@router.get("/evaluation", response_model=list[AlgorithmEvaluation])
+def evaluation(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.TEACHER, Role.ADMIN)),
+) -> list[dict[str, float | str | int]]:
+    del user
+    return evaluate_algorithms(db)

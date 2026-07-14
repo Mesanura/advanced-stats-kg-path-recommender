@@ -4,7 +4,7 @@ from pathlib import Path
 
 from app.db import SessionLocal
 from app.enums import MasteryAlgorithm
-from app.services.diagnosis import recompute_rule_mastery
+from app.services.diagnosis import recompute_bkt_mastery, recompute_rule_mastery
 from app.services.simulation import DEFAULT_EXPORT_DIR, DEFAULT_SEED, seed_demo_data, summary_dict
 
 
@@ -31,10 +31,12 @@ def main() -> None:
             )
         print(json.dumps(summary_dict(summary), ensure_ascii=False, indent=2))
     elif args.command == "diagnose":
-        if args.algorithm != MasteryAlgorithm.RULE.value:
-            parser.error("该算法尚未实现")
         with SessionLocal() as db:
-            updated = recompute_rule_mastery(db)
+            updated = (
+                recompute_rule_mastery(db)
+                if args.algorithm == MasteryAlgorithm.RULE.value
+                else recompute_bkt_mastery(db)
+            )
         print(json.dumps({"algorithm": args.algorithm, "results_updated": updated}, ensure_ascii=False))
 
 

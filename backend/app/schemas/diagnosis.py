@@ -31,3 +31,17 @@ class RecomputeResponse(BaseModel):
     algorithm: MasteryAlgorithm
     results_updated: int
 
+
+class AlgorithmSelection(BaseModel):
+    algorithm: MasteryAlgorithm
+
+
+class AlgorithmEvaluation(BaseModel):
+    algorithm: MasteryAlgorithm
+    sample_size: int
+    mae: float
+    rmse: float
+    spearman: float
+    weak_precision: float
+    weak_recall: float
+    weak_f1: float
