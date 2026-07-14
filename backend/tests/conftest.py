@@ -17,11 +17,14 @@ def db_session() -> Generator[Session, None, None]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine)
-    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
-    with session_factory() as session:
-        yield session
-    Base.metadata.drop_all(engine)
+    try:
+        Base.metadata.create_all(engine)
+        session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+        with session_factory() as session:
+            yield session
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 @pytest.fixture
@@ -33,4 +36,3 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-

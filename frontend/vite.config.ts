@@ -9,4 +9,16 @@ export default defineConfig({
       '/api': 'http://127.0.0.1:8000',
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1100,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('echarts')) return 'echarts'
+          if (id.includes('element-plus') || id.includes('@element-plus')) return 'element-plus'
+          if (id.includes('axios')) return 'http-client'
+        },
+      },
+    },
+  },
 })

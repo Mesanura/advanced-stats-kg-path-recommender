@@ -5,6 +5,20 @@ export default defineConfig({
   plugins: [vue()],
   test: {
     environment: 'jsdom',
+    include: ['src/**/*.spec.ts'],
+    setupFiles: ['./src/test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      include: [
+        'src/api/**/*.ts',
+        'src/router/**/*.ts',
+        'src/stores/**/*.ts',
+        'src/components/**/*.vue',
+        'src/views/**/*.vue',
+      ],
+      exclude: ['src/types/**', 'src/main.ts'],
+      thresholds: { lines: 75, statements: 75 },
+      reporter: ['text', 'html'],
+    },
   },
 })
-

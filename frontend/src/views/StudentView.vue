@@ -23,10 +23,14 @@ const dimensionLabels: Record<AbilityDimension, string> = {
   classification: '分类方法', evaluation_ensemble: '评估与集成',
 }
 const currentPath = computed(() => dashboard.value?.current_paths[0])
-const radarOption = computed(() => ({
-  tooltip: {}, radar: { indicator: (dashboard.value?.dimensions ?? []).map(item => ({ name: dimensionLabels[item.dimension], max: 1 })), splitNumber: 4, axisName: { color: '#4f5d67' }, splitArea: { areaStyle: { color: ['#f7f9fa', '#eef3f2'] } } },
-  series: [{ type: 'radar', data: [{ value: (dashboard.value?.dimensions ?? []).map(item => item.average), areaStyle: { color: 'rgba(36,122,104,.24)' }, lineStyle: { color: '#247a68' }, itemStyle: { color: '#247a68' } }] }],
-}))
+const radarOption = computed(() => {
+  const dimensions = dashboard.value?.dimensions ?? []
+  if (!dimensions.length) return {}
+  return {
+    tooltip: {}, radar: { radius: '52%', indicator: dimensions.map(item => ({ name: dimensionLabels[item.dimension], max: 1 })), splitNumber: 4, axisName: { color: '#4f5d67' }, splitArea: { areaStyle: { color: ['#f7f9fa', '#eef3f2'] } } },
+    series: [{ type: 'radar', data: [{ value: dimensions.map(item => item.average), areaStyle: { color: 'rgba(36,122,104,.24)' }, lineStyle: { color: '#247a68' }, itemStyle: { color: '#247a68' } }] }],
+  }
+})
 
 async function load(): Promise<void> {
   dashboard.value = (await api.get<StudentDashboardData>('/students/me/dashboard')).data

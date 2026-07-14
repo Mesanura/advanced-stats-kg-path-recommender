@@ -12,7 +12,7 @@ try {
 Push-Location "$Root\frontend"
 try {
     $env:CI = 'true'
-    pnpm test
+    pnpm test:coverage
     if ($LASTEXITCODE -ne 0) { throw "前端测试失败，退出码：$LASTEXITCODE" }
     pnpm build
     if ($LASTEXITCODE -ne 0) { throw "前端构建失败，退出码：$LASTEXITCODE" }

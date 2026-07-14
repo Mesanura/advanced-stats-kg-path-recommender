@@ -2,12 +2,13 @@
 import { GraphChart } from 'echarts/charts'
 import { TooltipComponent } from 'echarts/components'
 import { init, use, type ECharts } from 'echarts/core'
+import { LabelLayout } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import type { KnowledgeGraphData } from '../types/knowledge'
 
-use([GraphChart, TooltipComponent, CanvasRenderer])
+use([GraphChart, TooltipComponent, LabelLayout, CanvasRenderer])
 const props = defineProps<{ data: KnowledgeGraphData }>()
 const container = ref<HTMLDivElement>()
 let chart: ECharts | undefined
@@ -20,9 +21,10 @@ function render(): void {
     tooltip: { formatter: (params: { dataType: string; data: { name?: string; difficulty?: number } }) => params.dataType === 'node' ? `${params.data.name}<br/>难度 ${params.data.difficulty}` : '前置关系' },
     series: [{
       type: 'graph', layout: 'force', roam: true, draggable: true,
-      force: { repulsion: 240, edgeLength: [70, 130], gravity: 0.08 },
-      symbolSize: (value: number[]) => 26 + value[0] * 4,
-      label: { show: true, position: 'right', color: '#24313b', fontSize: 11 },
+      force: { repulsion: 350, edgeLength: [85, 140], gravity: 0.08 },
+      symbolSize: (value: number[]) => 20 + value[0] * 3,
+      label: { show: true, position: 'right', distance: 5, color: '#24313b', fontSize: 10 },
+      labelLayout: { hideOverlap: true },
       edgeSymbol: ['none', 'arrow'], edgeSymbolSize: 7,
       lineStyle: { color: '#aab4ba', width: 1.2, curveness: 0.05 },
       data: props.data.nodes.map(node => ({ id: String(node.id), name: node.name, value: [node.difficulty], difficulty: node.difficulty, itemStyle: { color: colors[dimensions.indexOf(node.dimension)] } })),
@@ -38,4 +40,3 @@ onBeforeUnmount(() => { window.removeEventListener('resize', resize); chart?.dis
 </script>
 
 <template><div ref="container" class="knowledge-graph-canvas"></div></template>
-

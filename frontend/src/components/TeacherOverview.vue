@@ -36,11 +36,15 @@ async function loadOverview(): Promise<void> {
   } finally { loading.value = false }
 }
 
-const radarOption = computed(() => ({
-  tooltip: {},
-  radar: { indicator: (overview.value?.dimensions ?? []).map(item => ({ name: dimensionLabels[item.dimension], max: 1 })), splitNumber: 4, axisName: { color: '#4f5d67' }, splitArea: { areaStyle: { color: ['#f7f9fa', '#eef3f2'] } } },
-  series: [{ type: 'radar', data: [{ value: (overview.value?.dimensions ?? []).map(item => item.average), areaStyle: { color: 'rgba(36,122,104,.25)' }, lineStyle: { color: '#247a68' }, itemStyle: { color: '#247a68' } }] }],
-}))
+const radarOption = computed(() => {
+  const dimensions = overview.value?.dimensions ?? []
+  if (!dimensions.length) return {}
+  return {
+    tooltip: {},
+    radar: { radius: '52%', indicator: dimensions.map(item => ({ name: dimensionLabels[item.dimension], max: 1 })), splitNumber: 4, axisName: { color: '#4f5d67' }, splitArea: { areaStyle: { color: ['#f7f9fa', '#eef3f2'] } } },
+    series: [{ type: 'radar', data: [{ value: dimensions.map(item => item.average), areaStyle: { color: 'rgba(36,122,104,.25)' }, lineStyle: { color: '#247a68' }, itemStyle: { color: '#247a68' } }] }],
+  }
+})
 const weakBarOption = computed(() => {
   const data = overview.value?.weak_top5 ?? []
   return {
@@ -86,4 +90,3 @@ onMounted(async () => {
     </section>
   </main>
 </template>
-
