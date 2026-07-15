@@ -4,13 +4,18 @@
 
 格式参考 Keep a Changelog，版本号遵循语义化版本。
 
-## [1.0.1] - 2026-07-14
+## [1.0.1] - 2026-07-15
 
 ### Added
 
 - 新增 Bash 环境下的安装、开发、测试和单地址运行脚本。
 - 支持 Linux、macOS 以及 Windows Git Bash，并自动识别对应虚拟环境与 pnpm 命令。
 - 补充 PowerShell/Bash 双环境运行与故障排查说明。
+
+### Fixed
+
+- 修复从 PowerShell 直接调用 Git Bash 时标准工具目录未进入 `PATH` 的问题。
+- 优化 Bash 安装脚本的幂等依赖校验，仅在缺少 Python 包时执行有界联网安装。
 
 ## [1.0.0] - 2026-07-14
 
