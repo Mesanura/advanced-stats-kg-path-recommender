@@ -2,7 +2,13 @@
 
 set -euo pipefail
 
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
+SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
+if [[ "$SCRIPT_DIR" == "${BASH_SOURCE[0]}" ]]; then
+  SCRIPT_DIR="."
+fi
+ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"
 
 if [[ -x "$ROOT/.venv/bin/python" ]]; then
   VENV_PYTHON="$ROOT/.venv/bin/python"

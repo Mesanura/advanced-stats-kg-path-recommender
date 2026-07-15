@@ -2,7 +2,13 @@
 
 set -euo pipefail
 
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
+SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
+if [[ "$SCRIPT_DIR" == "${BASH_SOURCE[0]}" ]]; then
+  SCRIPT_DIR="."
+fi
+ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"
 
 if [[ -n "${PYTHON_BIN:-}" ]]; then
   BOOTSTRAP_PYTHON="$PYTHON_BIN"
@@ -37,10 +43,16 @@ else
   exit 1
 fi
 
-"$VENV_PYTHON" -m pip install --upgrade pip
-"$VENV_PYTHON" -m pip install \
+PIP_NETWORK_ARGS=(--disable-pip-version-check --timeout 30 --retries 2)
+
+"$VENV_PYTHON" -m pip --version
+if ! "$VENV_PYTHON" -m pip install --no-index \
   -r "$ROOT/backend/requirements.txt" \
-  -r "$ROOT/backend/requirements-dev.txt"
+  -r "$ROOT/backend/requirements-dev.txt" >/dev/null 2>&1; then
+  "$VENV_PYTHON" -m pip install "${PIP_NETWORK_ARGS[@]}" \
+    -r "$ROOT/backend/requirements.txt" \
+    -r "$ROOT/backend/requirements-dev.txt"
+fi
 
 (
   cd "$ROOT/frontend"
