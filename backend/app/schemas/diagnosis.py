@@ -24,7 +24,7 @@ class StudentDiagnosisRead(BaseModel):
     calculated_at: datetime
     items: list[MasteryItemRead]
     weak_points: list[str]
-    suggested_directions: list[str]
+    suggested_directions: list[AbilityDimension]
 
 
 class RecomputeResponse(BaseModel):

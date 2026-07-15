@@ -21,6 +21,9 @@ class LoginResponse(BaseModel):
     user: UserMe
 
 
+class SessionResponse(BaseModel):
+    user: UserMe | None
+
+
 class MessageResponse(BaseModel):
     message: str
-

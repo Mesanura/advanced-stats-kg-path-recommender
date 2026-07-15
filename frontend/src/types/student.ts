@@ -15,6 +15,7 @@ export interface MasteryItem {
 }
 export interface PathNode {
   sequence: number
+  stage: number
   knowledge_point_id: number
   name: string
   difficulty: number
@@ -31,7 +32,8 @@ export interface LearningPath {
   algorithm: MasteryAlgorithm
   state: 'current' | 'stale'
   score: number
-  length_exception: string | null
+  stage_count: number
+  length_exception: 'target_mastered' | 'shallow_target' | 'staged_dependency' | null
   created_at: string
   nodes: PathNode[]
 }
@@ -45,8 +47,7 @@ export interface StudentDashboardData {
   dimensions: { dimension: AbilityDimension; average: number }[]
   mastery_items: MasteryItem[]
   weak_points: string[]
-  suggested_directions: string[]
+  suggested_directions: AbilityDimension[]
   available_targets: KnowledgePoint[]
   current_paths: LearningPath[]
 }
-

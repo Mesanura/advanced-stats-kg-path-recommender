@@ -5,10 +5,13 @@ import { computed, onMounted, reactive, ref } from 'vue'
 
 import { api } from '../api/client'
 import AppShell from '../components/AppShell.vue'
+import KnowledgeManagement from '../components/KnowledgeManagement.vue'
+import RecommendationSettings from '../components/RecommendationSettings.vue'
 import type { Classroom, Grade, ManagedUser, PaginatedUsers } from '../types/admin'
 import type { Role } from '../types/auth'
 
 const users = ref<ManagedUser[]>([])
+const activeSection = ref<'users' | 'knowledge' | 'settings'>('users')
 const grades = ref<Grade[]>([])
 const classrooms = ref<Classroom[]>([])
 const total = ref(0)
@@ -23,6 +26,7 @@ const form = reactive({
 })
 const structure = reactive({ grade_name: '', class_name: '', grade_id: undefined as number | undefined })
 const roleText: Record<Role, string> = { student: '学生', teacher: '教师', admin: '管理员' }
+const sectionNames = { users: '用户与班级', knowledge: '知识图谱', settings: '推荐策略' }
 const classOptions = computed(() => classrooms.value.map(item => ({ label: `${item.grade_name} · ${item.name}`, value: item.id })))
 
 async function loadUsers(): Promise<void> {
@@ -78,8 +82,12 @@ onMounted(async () => { await Promise.all([loadUsers(), loadStructures()]) })
 </script>
 
 <template>
-  <AppShell section="用户与班级">
-    <main class="page-content">
+  <AppShell :section="sectionNames[activeSection]">
+    <div class="teacher-section-tabs"><el-segmented v-model="activeSection" :options="[{label:'用户与班级',value:'users'},{label:'知识图谱',value:'knowledge'},{label:'推荐策略',value:'settings'}]" /></div>
+    <KnowledgeManagement v-if="activeSection === 'knowledge'" />
+    <RecommendationSettings v-else-if="activeSection === 'settings'" />
+    <template v-else>
+      <main class="page-content">
       <div class="page-title-row">
         <div><p class="section-label">SYSTEM ADMINISTRATION</p><h1>用户与教学组织</h1><p>共 {{ total }} 个账号，{{ grades.length }} 个年级，{{ classrooms.length }} 个班级</p></div>
         <div class="page-actions"><el-button @click="structureDialog = true">年级 / 班级</el-button><el-button type="primary" :icon="Plus" @click="userDialog = true">新增账号</el-button></div>
@@ -97,9 +105,9 @@ onMounted(async () => { await Promise.all([loadUsers(), loadStructures()]) })
         <el-table-column label="状态" width="90"><template #default="scope"><span :class="['status-dot', scope.row.is_active ? 'online' : 'offline']"></span>{{ scope.row.is_active ? '启用' : '停用' }}</template></el-table-column>
         <el-table-column label="操作" width="200" align="right"><template #default="scope"><el-button link :icon="Key" @click="resetPassword(scope.row)">重置密码</el-button><el-button link @click="toggleUser(scope.row)">{{ scope.row.is_active ? '停用' : '启用' }}</el-button></template></el-table-column>
       </el-table>
-    </main>
+      </main>
 
-    <el-dialog v-model="userDialog" title="新增账号" width="520px">
+      <el-dialog v-model="userDialog" title="新增账号" width="520px">
       <el-form label-position="top">
         <div class="form-grid"><el-form-item label="姓名"><el-input v-model="form.display_name" /></el-form-item><el-form-item label="用户名"><el-input v-model="form.username" /></el-form-item></div>
         <el-form-item label="角色"><el-segmented v-model="form.role" :options="[{label:'学生',value:'student'},{label:'教师',value:'teacher'},{label:'管理员',value:'admin'}]" /></el-form-item>
@@ -108,12 +116,12 @@ onMounted(async () => { await Promise.all([loadUsers(), loadStructures()]) })
         <el-form-item label="初始密码"><el-input v-model="form.password" type="password" show-password /></el-form-item>
       </el-form>
       <template #footer><el-button @click="userDialog = false">取消</el-button><el-button type="primary" @click="createUser">创建</el-button></template>
-    </el-dialog>
+      </el-dialog>
 
-    <el-dialog v-model="structureDialog" title="年级与班级" width="500px">
+      <el-dialog v-model="structureDialog" title="年级与班级" width="500px">
       <el-form label-position="top"><el-form-item label="新年级名称"><el-input v-model="structure.grade_name" placeholder="例如：2026级" /></el-form-item><el-divider /><el-form-item label="所属年级"><el-select v-model="structure.grade_id"><el-option v-for="item in grades" :key="item.id" :label="item.name" :value="item.id" /></el-select></el-form-item><el-form-item label="新班级名称"><el-input v-model="structure.class_name" placeholder="例如：高级统计01班" /></el-form-item></el-form>
       <template #footer><el-button @click="structureDialog = false">取消</el-button><el-button type="primary" @click="createStructure">保存</el-button></template>
-    </el-dialog>
+      </el-dialog>
+    </template>
   </AppShell>
 </template>
-

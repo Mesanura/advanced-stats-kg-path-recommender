@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.enums import MasteryAlgorithm, PathNodeStatus, PathState
+from app.enums import MasteryAlgorithm, PathLengthException, PathNodeStatus, PathState
 
 
 class RecommendationRequest(BaseModel):
@@ -11,6 +11,7 @@ class RecommendationRequest(BaseModel):
 
 class PathNodeRead(BaseModel):
     sequence: int
+    stage: int
     knowledge_point_id: int
     name: str
     difficulty: int
@@ -28,7 +29,7 @@ class LearningPathRead(BaseModel):
     algorithm: MasteryAlgorithm
     state: PathState
     score: float
-    length_exception: str | None
+    stage_count: int
+    length_exception: PathLengthException | None
     created_at: datetime
     nodes: list[PathNodeRead]
-

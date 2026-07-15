@@ -23,7 +23,7 @@ describe('route authorization', () => {
 
   it('redirects a signed-in user away from another role page', async () => {
     vi.mocked(api.get).mockResolvedValue({
-      data: { id: 2, username: 'teacher01', display_name: '教师01', role: 'teacher' },
+      data: { user: { id: 2, username: 'teacher01', display_name: '教师01', role: 'teacher' } },
     })
     setActivePinia(createPinia())
 
@@ -34,7 +34,7 @@ describe('route authorization', () => {
 
   it('redirects an authenticated login visit to the role home', async () => {
     vi.mocked(api.get).mockResolvedValue({
-      data: { id: 3, username: 'admin', display_name: '系统管理员', role: 'admin' },
+      data: { user: { id: 3, username: 'admin', display_name: '系统管理员', role: 'admin' } },
     })
     setActivePinia(createPinia())
 

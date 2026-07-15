@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { api } from '../api/client'
-import type { KnowledgePoint } from '../types/knowledge'
+import type { AbilityDimension, KnowledgePoint } from '../types/knowledge'
 import type { LearningPath, MasteryItem } from '../types/student'
 import type { MasteryAlgorithm, PaginatedTeacherStudents, TeacherScope, TeacherStudent } from '../types/teacher'
 
@@ -15,7 +15,7 @@ interface Diagnosis {
   algorithm: MasteryAlgorithm
   items: MasteryItem[]
   weak_points: string[]
-  suggested_directions: string[]
+  suggested_directions: AbilityDimension[]
 }
 
 const students = ref<TeacherStudent[]>([])
@@ -32,6 +32,23 @@ const generatedPath = ref<LearningPath>()
 const drawer = ref(false)
 const loading = ref(false)
 const detailLoading = ref(false)
+const dimensionLabels: Record<AbilityDimension, string> = {
+  statistics_foundation: '统计基础', linear_models: '线性模型', selection_regularization: '选择与正则化',
+  classification: '分类方法', evaluation_ensemble: '评估与集成',
+}
+const generatedStages = computed(() => {
+  if (!generatedPath.value) return []
+  return Array.from({ length: generatedPath.value.stage_count }, (_, index) => ({
+    stage: index + 1,
+    nodes: generatedPath.value!.nodes.filter(node => node.stage === index + 1),
+  }))
+})
+const generatedExceptionText = computed(() => {
+  if (generatedPath.value?.length_exception === 'target_mastered') return '目标已掌握，当前为单节点复习计划'
+  if (generatedPath.value?.length_exception === 'shallow_target') return '目标前置层级较浅，已返回完整短路径'
+  if (generatedPath.value?.length_exception === 'staged_dependency') return `完整必修依赖已拆分为 ${generatedPath.value.stage_count} 个阶段`
+  return ''
+})
 
 async function loadStudents(): Promise<void> {
   loading.value = true
@@ -93,8 +110,8 @@ onMounted(async () => {
       <el-table-column label="" width="80"><template #default="scope"><el-button link :loading="detailLoading && selected?.student_id === scope.row.student_id" @click.stop="openStudent(scope.row)">详情</el-button></template></el-table-column>
     </el-table>
 
-    <el-drawer v-model="drawer" v-loading="detailLoading" :size="680" :title="`${selected?.display_name ?? ''} · 诊断报告`">
-      <template v-if="diagnosis"><div class="diagnosis-meta"><span>{{ diagnosis.student_no }}</span><el-tag effect="plain">{{ diagnosis.algorithm.toUpperCase() }}</el-tag></div><h3>薄弱知识点</h3><div class="prerequisite-list"><el-tag v-for="item in diagnosis.weak_points" :key="item" type="danger" effect="plain">{{ item }}</el-tag><span v-if="!diagnosis.weak_points.length">暂无薄弱知识点</span></div><h3>知识掌握度</h3><div class="diagnosis-heatmap"><div v-for="item in diagnosis.items" :key="item.knowledge_point_id" :class="['diagnosis-cell', item.status]"><span>{{ item.name }}</span><strong>{{ Math.round(item.score * 100) }}%</strong></div></div><el-divider /><h3>生成学习路径</h3><div class="teacher-path-action"><el-select v-model="targetId" filterable placeholder="目标知识点"><el-option v-for="item in targets" :key="item.id" :label="item.name" :value="item.id" /></el-select><el-button type="primary" @click="generatePath">生成</el-button></div><div v-if="generatedPath" class="compact-path"><span v-for="node in generatedPath.nodes" :key="node.sequence">{{ node.name }}</span></div></template>
+    <el-drawer v-model="drawer" v-loading="detailLoading" class="student-diagnosis-drawer" :size="680" :title="`${selected?.display_name ?? ''} · 诊断报告`">
+      <template v-if="diagnosis"><div class="diagnosis-meta"><span>{{ diagnosis.student_no }}</span><el-tag effect="plain">{{ diagnosis.algorithm.toUpperCase() }}</el-tag></div><h3>薄弱知识点</h3><div class="prerequisite-list"><el-tag v-for="item in diagnosis.weak_points" :key="item" type="danger" effect="plain">{{ item }}</el-tag><span v-if="!diagnosis.weak_points.length">暂无薄弱知识点</span></div><h3>建议学习方向</h3><div class="prerequisite-list"><el-tag v-for="item in diagnosis.suggested_directions" :key="item" effect="plain">{{ dimensionLabels[item] }}</el-tag><span v-if="!diagnosis.suggested_directions.length">暂无专项建议</span></div><h3>知识掌握度</h3><div class="diagnosis-heatmap"><div v-for="item in diagnosis.items" :key="item.knowledge_point_id" :class="['diagnosis-cell', item.status]"><span>{{ item.name }}</span><strong>{{ Math.round(item.score * 100) }}%</strong></div></div><el-divider /><h3>生成学习路径</h3><div class="teacher-path-action"><el-select v-model="targetId" filterable placeholder="目标知识点"><el-option v-for="item in targets" :key="item.id" :label="item.name" :value="item.id" /></el-select><el-button type="primary" @click="generatePath">生成</el-button></div><div v-if="generatedPath" class="teacher-staged-plan"><p v-if="generatedExceptionText" class="path-exception">{{ generatedExceptionText }}</p><div v-for="group in generatedStages" :key="group.stage"><strong>阶段 {{ group.stage }} / {{ generatedPath.stage_count }}</strong><div class="compact-path"><span v-for="node in group.nodes" :key="node.sequence">{{ node.name }}</span></div></div></div></template>
     </el-drawer>
   </main>
 </template>

@@ -39,6 +39,10 @@ class PrerequisiteCreate(BaseModel):
     prerequisite_id: int
 
 
+class PrerequisiteUpdate(PrerequisiteCreate):
+    pass
+
+
 class PrerequisiteRead(PrerequisiteCreate):
     knowledge_point_name: str
     prerequisite_name: str
@@ -52,4 +56,3 @@ class GraphResponse(BaseModel):
 class ImportResponse(BaseModel):
     knowledge_points_created: int
     prerequisites_created: int
-

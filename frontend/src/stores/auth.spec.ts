@@ -17,12 +17,12 @@ describe('auth store', () => {
   })
 
   it('loads the current user and derives authenticated state', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: student })
+    vi.mocked(api.get).mockResolvedValue({ data: { user: student } })
     const auth = useAuthStore()
 
     await auth.loadCurrentUser()
 
-    expect(api.get).toHaveBeenCalledWith('/auth/me')
+    expect(api.get).toHaveBeenCalledWith('/auth/session')
     expect(auth.user).toEqual(student)
     expect(auth.initialized).toBe(true)
     expect(auth.isAuthenticated).toBe(true)

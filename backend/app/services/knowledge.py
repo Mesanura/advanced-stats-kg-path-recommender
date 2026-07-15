@@ -21,8 +21,16 @@ def build_graph(db: Session) -> nx.DiGraph:
     return graph
 
 
-def would_create_cycle(db: Session, prerequisite_id: int, knowledge_point_id: int) -> bool:
+def would_create_cycle(
+    db: Session,
+    prerequisite_id: int,
+    knowledge_point_id: int,
+    *,
+    removed_edge: tuple[int, int] | None = None,
+) -> bool:
     graph = build_graph(db)
+    if removed_edge and graph.has_edge(*removed_edge):
+        graph.remove_edge(*removed_edge)
     graph.add_edge(prerequisite_id, knowledge_point_id)
     return not nx.is_directed_acyclic_graph(graph)
 
@@ -68,4 +76,3 @@ def import_default_graph(db: Session, path: Path = DEFAULT_GRAPH_PATH) -> tuple[
             created_edges += 1
     db.commit()
     return created_points, created_edges
-

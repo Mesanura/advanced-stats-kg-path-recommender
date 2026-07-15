@@ -37,3 +37,8 @@ class PathState(StrEnum):
     CURRENT = "current"
     STALE = "stale"
 
+
+class PathLengthException(StrEnum):
+    TARGET_MASTERED = "target_mastered"
+    SHALLOW_TARGET = "shallow_target"
+    STAGED_DEPENDENCY = "staged_dependency"

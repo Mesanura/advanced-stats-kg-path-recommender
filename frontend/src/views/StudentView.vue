@@ -23,6 +23,20 @@ const dimensionLabels: Record<AbilityDimension, string> = {
   classification: '分类方法', evaluation_ensemble: '评估与集成',
 }
 const currentPath = computed(() => dashboard.value?.current_paths[0])
+const pathStages = computed(() => {
+  const path = currentPath.value
+  if (!path) return []
+  return Array.from({ length: path.stage_count }, (_, index) => ({
+    stage: index + 1,
+    nodes: path.nodes.filter(node => node.stage === index + 1),
+  }))
+})
+const pathNote = computed(() => {
+  if (currentPath.value?.length_exception === 'target_mastered') return '目标已掌握，当前为单节点复习计划'
+  if (currentPath.value?.length_exception === 'shallow_target') return '目标前置层级较浅，已返回完整短路径'
+  if (currentPath.value?.length_exception === 'staged_dependency') return `完整必修依赖已拆分为 ${currentPath.value.stage_count} 个阶段`
+  return ''
+})
 const radarOption = computed(() => {
   const dimensions = dashboard.value?.dimensions ?? []
   if (!dimensions.length) return {}
@@ -45,7 +59,7 @@ async function generatePath(): Promise<void> {
     await load()
     const index = dashboard.value?.current_paths.findIndex(item => item.id === path.id) ?? -1
     if (index > 0 && dashboard.value) dashboard.value.current_paths.unshift(...dashboard.value.current_paths.splice(index, 1))
-    ElMessage.success(path.length_exception === 'target_mastered' ? '该目标已掌握' : '学习路径已生成')
+    ElMessage.success(path.length_exception === 'target_mastered' ? '该目标已掌握' : path.length_exception === 'staged_dependency' ? `已生成 ${path.stage_count} 阶段学习计划` : '学习路径已生成')
   } catch { ElMessage.error('当前知识图谱无法生成该目标的有效路径') }
   finally { generating.value = false }
 }
@@ -77,7 +91,7 @@ onMounted(load)
       <section class="student-summary-band">
         <div class="profile-score"><span>综合掌握度</span><strong>{{ Math.round((dashboard?.average_mastery ?? 0) * 100) }}%</strong><el-progress :percentage="Math.round((dashboard?.average_mastery ?? 0) * 100)" :stroke-width="8" :show-text="false" /></div>
         <div class="student-radar"><BaseChart :option="radarOption" /></div>
-        <div class="weak-summary"><span>当前薄弱点</span><strong>{{ dashboard?.weak_points.length ?? 0 }}</strong><div><el-tag v-for="item in dashboard?.weak_points.slice(0, 4) ?? []" :key="item" type="danger" effect="plain">{{ item }}</el-tag></div></div>
+        <div class="weak-summary"><span>当前薄弱点</span><strong>{{ dashboard?.weak_points.length ?? 0 }}</strong><div><el-tag v-for="item in dashboard?.weak_points.slice(0, 4) ?? []" :key="item" type="danger" effect="plain">{{ item }}</el-tag></div><div class="direction-summary"><span>建议学习方向</span><div><el-tag v-for="item in dashboard?.suggested_directions ?? []" :key="item" effect="plain">{{ dimensionLabels[item] }}</el-tag><span v-if="!dashboard?.suggested_directions.length">暂无专项建议</span></div></div></div>
       </section>
 
       <section class="mastery-section">
@@ -87,8 +101,12 @@ onMounted(load)
 
       <section class="path-section">
         <div class="panel-heading"><h2>当前学习路径</h2><span>{{ currentPath?.target_name ?? '尚未生成' }}</span></div>
-        <div v-if="currentPath" class="learning-path">
-          <button v-for="node in currentPath.nodes" :key="node.sequence" type="button" :class="['path-node', node.status]" @click="openNode(node)"><span class="path-index">{{ node.sequence }}</span><span class="path-copy"><strong>{{ node.name }}</strong><small>{{ node.status === 'mastered' ? '已掌握' : node.status === 'target' ? '目标' : '待学习' }} · {{ Math.round(node.mastery_score * 100) }}%</small></span></button>
+        <div v-if="currentPath" class="staged-plan">
+          <p v-if="pathNote" class="path-note">{{ pathNote }}</p>
+          <section v-for="group in pathStages" :key="group.stage" class="path-stage">
+            <div class="stage-heading"><strong>阶段 {{ group.stage }} / {{ currentPath.stage_count }}</strong><span>{{ group.nodes.length }} 个知识点</span></div>
+            <div class="learning-path"><button v-for="node in group.nodes" :key="node.sequence" type="button" :class="['path-node', node.status]" @click="openNode(node)"><span class="path-index">{{ node.sequence }}</span><span class="path-copy"><strong>{{ node.name }}</strong><small>{{ node.status === 'mastered' ? '已掌握' : node.status === 'target' ? '目标' : '待学习' }} · {{ Math.round(node.mastery_score * 100) }}%</small></span></button></div>
+          </section>
         </div>
         <el-empty v-else description="暂无学习路径" :image-size="80" />
       </section>

@@ -21,7 +21,6 @@ class StudentDashboard(BaseModel):
     dimensions: list[DimensionMastery]
     mastery_items: list[MasteryItemRead]
     weak_points: list[str]
-    suggested_directions: list[str]
+    suggested_directions: list[AbilityDimension]
     available_targets: list[KnowledgePointRead]
     current_paths: list[LearningPathRead]
-

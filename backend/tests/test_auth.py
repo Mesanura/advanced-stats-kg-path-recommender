@@ -21,6 +21,7 @@ def add_user(db: Session, *, active: bool = True, role: Role = Role.STUDENT) -> 
 
 def test_login_me_and_logout(client: TestClient, db_session: Session) -> None:
     add_user(db_session)
+    assert client.get("/api/v1/auth/session").json() == {"user": None}
 
     login = client.post(
         "/api/v1/auth/login",
@@ -29,6 +30,7 @@ def test_login_me_and_logout(client: TestClient, db_session: Session) -> None:
     assert login.status_code == 200
     assert login.json()["user"]["role"] == "student"
     assert login.cookies.get("access_token")
+    assert client.get("/api/v1/auth/session").json()["user"]["display_name"] == "学生01"
 
     me = client.get("/api/v1/auth/me")
     assert me.status_code == 200
@@ -36,6 +38,7 @@ def test_login_me_and_logout(client: TestClient, db_session: Session) -> None:
 
     logout = client.post("/api/v1/auth/logout")
     assert logout.status_code == 200
+    assert client.get("/api/v1/auth/session").json() == {"user": None}
     assert client.get("/api/v1/auth/me").status_code == 401
 
 
@@ -59,4 +62,3 @@ def test_login_rejects_inactive_user(client: TestClient, db_session: Session) ->
     )
 
     assert response.status_code == 401
-

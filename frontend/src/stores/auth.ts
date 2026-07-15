@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { api } from '../api/client'
-import type { CurrentUser, LoginResponse, Role } from '../types/auth'
+import type { CurrentUser, LoginResponse, Role, SessionResponse } from '../types/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<CurrentUser | null>(null)
@@ -11,8 +11,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loadCurrentUser(): Promise<void> {
     try {
-      const response = await api.get<CurrentUser>('/auth/me')
-      user.value = response.data
+      const response = await api.get<SessionResponse>('/auth/session')
+      user.value = response.data.user
     } catch {
       user.value = null
     } finally {
@@ -34,4 +34,3 @@ export const useAuthStore = defineStore('auth', () => {
 
   return { user, initialized, isAuthenticated, loadCurrentUser, login, logout }
 })
-

@@ -15,6 +15,7 @@ from app.schemas.knowledge import (
     KnowledgePointUpdate,
     PrerequisiteCreate,
     PrerequisiteRead,
+    PrerequisiteUpdate,
 )
 from app.services.knowledge import import_default_graph, mark_paths_stale, would_create_cycle
 
@@ -85,7 +86,15 @@ def update_point(
 ) -> KnowledgePoint:
     del user
     point = point_or_404(db, point_id)
-    for key, value in payload.model_dump(exclude_unset=True, mode="json").items():
+    changes = payload.model_dump(exclude_unset=True, mode="json")
+    if "name" in changes and db.scalar(
+        select(KnowledgePoint.id).where(
+            KnowledgePoint.name == changes["name"],
+            KnowledgePoint.id != point_id,
+        )
+    ):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="知识点名称已存在")
+    for key, value in changes.items():
         setattr(point, key, value)
     mark_paths_stale(db)
     db.commit()
@@ -157,6 +166,53 @@ def create_prerequisite(
     )
 
 
+@router.put(
+    "/prerequisites/{knowledge_point_id}/{prerequisite_id}",
+    response_model=PrerequisiteRead,
+)
+def update_prerequisite(
+    knowledge_point_id: int,
+    prerequisite_id: int,
+    payload: PrerequisiteUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(editor),
+) -> PrerequisiteRead:
+    del user
+    current = db.get(Prerequisite, (knowledge_point_id, prerequisite_id))
+    if current is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="前置关系不存在")
+    target = point_or_404(db, payload.knowledge_point_id)
+    prerequisite = point_or_404(db, payload.prerequisite_id)
+    if target.id == prerequisite.id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="知识点不能依赖自身")
+    new_key = (target.id, prerequisite.id)
+    old_key = (knowledge_point_id, prerequisite_id)
+    if new_key != old_key and db.get(Prerequisite, new_key):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="前置关系已存在")
+    if would_create_cycle(
+        db,
+        prerequisite.id,
+        target.id,
+        removed_edge=(prerequisite_id, knowledge_point_id),
+    ):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="该关系会形成循环依赖")
+    if new_key != old_key:
+        try:
+            db.delete(current)
+            db.flush()
+            db.add(Prerequisite(knowledge_point_id=target.id, prerequisite_id=prerequisite.id))
+            mark_paths_stale(db)
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+    return PrerequisiteRead(
+        **payload.model_dump(),
+        knowledge_point_name=target.name,
+        prerequisite_name=prerequisite.name,
+    )
+
+
 @router.delete("/prerequisites/{knowledge_point_id}/{prerequisite_id}", response_model=MessageResponse)
 def delete_prerequisite(
     knowledge_point_id: int,
@@ -181,4 +237,3 @@ def import_defaults(
     del user
     points, edges = import_default_graph(db)
     return ImportResponse(knowledge_points_created=points, prerequisites_created=edges)
-

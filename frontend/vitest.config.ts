@@ -17,7 +17,7 @@ export default defineConfig({
         'src/views/**/*.vue',
       ],
       exclude: ['src/types/**', 'src/main.ts'],
-      thresholds: { lines: 75, statements: 75 },
+      thresholds: { lines: 90, statements: 90, branches: 85, functions: 70 },
       reporter: ['text', 'html'],
     },
   },

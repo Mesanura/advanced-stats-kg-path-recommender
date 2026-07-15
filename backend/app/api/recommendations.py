@@ -36,11 +36,13 @@ def path_to_read(db: Session, path: LearningPath) -> LearningPathRead:
         algorithm=path.algorithm,
         state=path.state,
         score=path.score,
+        stage_count=max((item.stage for item in path.items), default=1),
         length_exception=path.length_exception,
         created_at=path.created_at,
         nodes=[
             PathNodeRead(
                 sequence=item.sequence,
+                stage=item.stage,
                 knowledge_point_id=item.knowledge_point_id,
                 name=points[item.knowledge_point_id].name,
                 difficulty=points[item.knowledge_point_id].difficulty,
@@ -114,4 +116,3 @@ def recommend_for_student(
     student = student_or_404(db, student_id)
     ensure_student_access(db, user, student)
     return create_for_student(db, student, payload)
-

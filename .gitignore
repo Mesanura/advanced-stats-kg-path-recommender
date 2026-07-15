@@ -1,8 +1,9 @@
-# Local source documents and report deliverables
-docs/报告模板.doc
-docs/基于高级统计方法课程知识图谱的学习行为分析与个性化路径推荐原型系统.*
-docs/项目报告.md
-docs/report-assets/
+# Local binary documents
+*.doc
+*.docx
+*.pdf
+docs/*.local.md
+docs/local-assets/
 
 # Secrets and local configuration
 .env

@@ -11,3 +11,6 @@ export interface LoginResponse {
   user: CurrentUser
 }
 
+export interface SessionResponse {
+  user: CurrentUser | null
+}

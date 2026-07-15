@@ -310,6 +310,7 @@ class LearningPathItem(Base):
         ForeignKey("learning_paths.id", ondelete="CASCADE"), primary_key=True
     )
     sequence: Mapped[int] = mapped_column(Integer, primary_key=True)
+    stage: Mapped[int] = mapped_column(Integer, default=1)
     knowledge_point_id: Mapped[int] = mapped_column(
         ForeignKey("knowledge_points.id", ondelete="CASCADE"), index=True
     )
@@ -318,4 +319,3 @@ class LearningPathItem(Base):
     )
     mastery_score: Mapped[float] = mapped_column(Float)
     path: Mapped[LearningPath] = relationship(back_populates="items")
-

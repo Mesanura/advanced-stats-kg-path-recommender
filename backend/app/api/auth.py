@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, get_optional_current_user
 from app.config import get_settings
 from app.db import get_db
 from app.models import User
-from app.schemas.auth import LoginRequest, LoginResponse, MessageResponse, UserMe
+from app.schemas.auth import LoginRequest, LoginResponse, MessageResponse, SessionResponse, UserMe
 from app.security import COOKIE_NAME, create_access_token, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -37,7 +37,11 @@ def logout(response: Response) -> MessageResponse:
     return MessageResponse(message="已退出登录")
 
 
+@router.get("/session", response_model=SessionResponse)
+def session(user: User | None = Depends(get_optional_current_user)) -> SessionResponse:
+    return SessionResponse(user=UserMe.model_validate(user) if user else None)
+
+
 @router.get("/me", response_model=UserMe)
 def me(user: User = Depends(get_current_user)) -> UserMe:
     return UserMe.model_validate(user)
-
