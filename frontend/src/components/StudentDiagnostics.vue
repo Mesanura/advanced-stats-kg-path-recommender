@@ -31,6 +31,7 @@ const targetId = ref<number>()
 const generatedPath = ref<LearningPath>()
 const drawer = ref(false)
 const loading = ref(false)
+const detailLoading = ref(false)
 
 async function loadStudents(): Promise<void> {
   loading.value = true
@@ -45,9 +46,20 @@ async function loadStudents(): Promise<void> {
 
 async function openStudent(student: TeacherStudent): Promise<void> {
   selected.value = student
+  diagnosis.value = undefined
   generatedPath.value = undefined
-  diagnosis.value = (await api.get<Diagnosis>(`/teacher/students/${student.student_id}/diagnosis`, { params: { algorithm: algorithm.value } })).data
+  targetId.value = undefined
   drawer.value = true
+  detailLoading.value = true
+  try {
+    diagnosis.value = (await api.get<Diagnosis>(`/teacher/students/${student.student_id}/diagnosis`, { params: { algorithm: algorithm.value } })).data
+  } catch (error: unknown) {
+    const detail = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+    drawer.value = false
+    ElMessage.error(detail || '无法加载学生诊断')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function generatePath(): Promise<void> {
@@ -78,12 +90,11 @@ onMounted(async () => {
       <el-table-column prop="classroom_name" label="班级" min-width="140" />
       <el-table-column label="平均掌握度" min-width="180"><template #default="scope"><el-progress :percentage="Math.round(scope.row.average_mastery * 100)" :stroke-width="8" /><span></span></template></el-table-column>
       <el-table-column prop="weak_count" label="薄弱 / 未学习" width="130" />
-      <el-table-column label="" width="80"><template #default><el-button link>详情</el-button></template></el-table-column>
+      <el-table-column label="" width="80"><template #default="scope"><el-button link :loading="detailLoading && selected?.student_id === scope.row.student_id" @click.stop="openStudent(scope.row)">详情</el-button></template></el-table-column>
     </el-table>
 
-    <el-drawer v-model="drawer" size="min(680px, 92vw)" :title="`${selected?.display_name ?? ''} · 诊断报告`">
+    <el-drawer v-model="drawer" v-loading="detailLoading" :size="680" :title="`${selected?.display_name ?? ''} · 诊断报告`">
       <template v-if="diagnosis"><div class="diagnosis-meta"><span>{{ diagnosis.student_no }}</span><el-tag effect="plain">{{ diagnosis.algorithm.toUpperCase() }}</el-tag></div><h3>薄弱知识点</h3><div class="prerequisite-list"><el-tag v-for="item in diagnosis.weak_points" :key="item" type="danger" effect="plain">{{ item }}</el-tag><span v-if="!diagnosis.weak_points.length">暂无薄弱知识点</span></div><h3>知识掌握度</h3><div class="diagnosis-heatmap"><div v-for="item in diagnosis.items" :key="item.knowledge_point_id" :class="['diagnosis-cell', item.status]"><span>{{ item.name }}</span><strong>{{ Math.round(item.score * 100) }}%</strong></div></div><el-divider /><h3>生成学习路径</h3><div class="teacher-path-action"><el-select v-model="targetId" filterable placeholder="目标知识点"><el-option v-for="item in targets" :key="item.id" :label="item.name" :value="item.id" /></el-select><el-button type="primary" @click="generatePath">生成</el-button></div><div v-if="generatedPath" class="compact-path"><span v-for="node in generatedPath.nodes" :key="node.sequence">{{ node.name }}</span></div></template>
     </el-drawer>
   </main>
 </template>
-

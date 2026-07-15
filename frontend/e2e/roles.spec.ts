@@ -53,6 +53,12 @@ test('teacher searches students, updates policy and manages a knowledge point', 
   await page.getByPlaceholder('姓名或学号').fill('20260001')
   await page.getByRole('button', { name: '查询' }).click()
   await expect(page.getByText('20260001', { exact: true })).toBeVisible()
+  const studentRow = page.getByRole('row').filter({ hasText: '20260001' })
+  await studentRow.getByRole('button', { name: '详情' }).click()
+  const diagnosisDialog = page.getByRole('dialog', { name: '学生01 · 诊断报告' })
+  await expect(diagnosisDialog).toBeVisible()
+  expect((await diagnosisDialog.boundingBox())?.width ?? 0).toBeGreaterThan(0)
+  await diagnosisDialog.getByRole('button', { name: 'Close this dialog' }).click()
 
   const configResponse = await page.request.get('/api/v1/teacher/recommendation-config')
   expect(configResponse.ok()).toBeTruthy()
