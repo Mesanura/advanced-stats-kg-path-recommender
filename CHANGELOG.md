@@ -4,6 +4,15 @@
 
 格式参考 Keep a Changelog，版本号遵循语义化版本。
 
+## [1.0.2] - 2026-07-15
+
+### Fixed
+
+- 统一 PowerShell 与 Bash 的 Python、虚拟环境和 pnpm 自动发现行为。
+- PowerShell 安装脚本改为离线优先校验依赖，仅在缺包时执行有界联网安装。
+- PowerShell 开发模式在任一服务退出后清理完整进程树，避免 Uvicorn 重载子进程占用端口。
+- PowerShell 脚本统一使用 UTF-8 BOM，兼容 Windows PowerShell 5.1 的中文解析。
+
 ## [1.0.1] - 2026-07-15
 
 ### Added
