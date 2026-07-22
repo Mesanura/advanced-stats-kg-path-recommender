@@ -1,3 +1,4 @@
+import networkx as nx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -5,9 +6,23 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.dependencies import require_roles
 from app.api.diagnosis import ensure_student_access, student_or_404
 from app.db import get_db
-from app.enums import PathState, Role
-from app.models import KnowledgePoint, LearningPath, Prerequisite, StudentProfile, User
-from app.schemas.recommendation import LearningPathRead, PathNodeRead, RecommendationRequest
+from app.enums import MasteryStatus, PathState, Role
+from app.models import (
+    KnowledgePoint,
+    LearningPath,
+    MasteryResult,
+    Prerequisite,
+    StudentProfile,
+    User,
+)
+from app.schemas.recommendation import (
+    DependencyGraphEdgeRead,
+    DependencyGraphNodeRead,
+    DependencyGraphRead,
+    LearningPathRead,
+    PathNodeRead,
+    RecommendationRequest,
+)
 from app.services.recommendation import recommend_path
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
@@ -15,18 +30,38 @@ router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
 def path_to_read(db: Session, path: LearningPath) -> LearningPathRead:
     point_ids = [item.knowledge_point_id for item in path.items]
-    points = {
-        item.id: item
-        for item in db.scalars(select(KnowledgePoint).where(KnowledgePoint.id.in_(point_ids)))
-    }
-    prerequisite_names: dict[int, list[str]] = {point_id: [] for point_id in point_ids}
-    edges = db.execute(
-        select(Prerequisite, KnowledgePoint.name)
-        .join(KnowledgePoint, KnowledgePoint.id == Prerequisite.prerequisite_id)
-        .where(Prerequisite.knowledge_point_id.in_(point_ids))
+    points = {item.id: item for item in db.scalars(select(KnowledgePoint))}
+    prerequisite_edges = list(db.scalars(select(Prerequisite)))
+    graph = nx.DiGraph()
+    graph.add_nodes_from(points)
+    graph.add_edges_from(
+        (edge.prerequisite_id, edge.knowledge_point_id) for edge in prerequisite_edges
     )
-    for edge, name in edges:
-        prerequisite_names[edge.knowledge_point_id].append(name)
+    dependency_ids = nx.ancestors(graph, path.target_knowledge_point_id) | {
+        path.target_knowledge_point_id
+    }
+    dependency_edges = [
+        edge
+        for edge in prerequisite_edges
+        if edge.prerequisite_id in dependency_ids and edge.knowledge_point_id in dependency_ids
+    ]
+    prerequisite_names: dict[int, list[str]] = {point_id: [] for point_id in dependency_ids}
+    for edge in dependency_edges:
+        prerequisite_names[edge.knowledge_point_id].append(points[edge.prerequisite_id].name)
+    for names in prerequisite_names.values():
+        names.sort()
+
+    mastery = {
+        item.knowledge_point_id: item
+        for item in db.scalars(
+            select(MasteryResult).where(
+                MasteryResult.student_id == path.student_id,
+                MasteryResult.algorithm == path.algorithm,
+                MasteryResult.knowledge_point_id.in_(dependency_ids),
+            )
+        )
+    }
+    recommended_ids = set(point_ids)
     target = points[path.target_knowledge_point_id]
     return LearningPathRead(
         id=path.id,
@@ -53,6 +88,38 @@ def path_to_read(db: Session, path: LearningPath) -> LearningPathRead:
             )
             for item in path.items
         ],
+        dependency_graph=DependencyGraphRead(
+            nodes=[
+                DependencyGraphNodeRead(
+                    knowledge_point_id=point.id,
+                    name=point.name,
+                    difficulty=point.difficulty,
+                    resource_url=point.resource_url,
+                    prerequisites=prerequisite_names[point.id],
+                    is_active=point.is_active,
+                    mastery_score=(mastery[point.id].score if point.id in mastery else 0.2),
+                    mastery_status=(
+                        mastery[point.id].status if point.id in mastery else MasteryStatus.UNKNOWN
+                    ),
+                    in_recommended_path=point.id in recommended_ids,
+                    is_target=point.id == path.target_knowledge_point_id,
+                )
+                for point in sorted(
+                    (points[point_id] for point_id in dependency_ids),
+                    key=lambda item: item.id,
+                )
+            ],
+            edges=[
+                DependencyGraphEdgeRead(
+                    prerequisite_id=edge.prerequisite_id,
+                    knowledge_point_id=edge.knowledge_point_id,
+                )
+                for edge in sorted(
+                    dependency_edges,
+                    key=lambda item: (item.prerequisite_id, item.knowledge_point_id),
+                )
+            ],
+        ),
     )
 
 

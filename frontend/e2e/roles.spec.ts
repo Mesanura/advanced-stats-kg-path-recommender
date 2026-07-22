@@ -39,8 +39,7 @@ async function selectOption(page: Page, select: Locator, optionName: string): Pr
   await page.locator(`#${listboxId!}`).getByRole('option', { name: optionName, exact: true }).click()
 }
 
-async function expectCanvasPainted(page: Page): Promise<void> {
-  const canvas = page.locator('canvas:visible').first()
+async function expectLocatorCanvasPainted(canvas: Locator): Promise<void> {
   await expect(canvas).toBeVisible()
   await expect.poll(async () => canvas.evaluate(element => {
     const target = element as HTMLCanvasElement
@@ -59,6 +58,10 @@ async function expectCanvasPainted(page: Page): Promise<void> {
     }
     return painted > 10 && varied
   })).toBe(true)
+}
+
+async function expectCanvasPainted(page: Page): Promise<void> {
+  await expectLocatorCanvasPainted(page.locator('canvas:visible').first())
 }
 
 async function captureReleaseScreenshot(page: Page, testInfo: TestInfo, name: string): Promise<void> {
@@ -103,6 +106,17 @@ test('student completes recommendation and feedback workflow', async ({ page, re
     await page.getByRole('button', { name: '生成路径' }).click()
     await expect(page.getByText(/完整必修依赖已拆分为/)).toBeVisible()
     expect(await page.locator('.path-stage').count()).toBeGreaterThan(1)
+    await expect(page.getByRole('heading', { name: '目标前置依赖图' })).toBeVisible()
+    await expectLocatorCanvasPainted(page.locator('.dependency-dag-canvas canvas'))
+    const dependencyViewport = await page.locator('.dependency-dag-scroll').evaluate(element => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }))
+    if ((page.viewportSize()?.width ?? 0) <= 760) {
+      expect(dependencyViewport.scrollWidth).toBeGreaterThan(dependencyViewport.clientWidth)
+    } else {
+      expect(dependencyViewport.scrollWidth).toBe(dependencyViewport.clientWidth)
+    }
     await page.locator('.path-node').first().click()
     const nodeDialog = page.getByRole('dialog', { name: '知识点详情' })
     await expect(nodeDialog).toBeVisible()
@@ -115,6 +129,9 @@ test('student completes recommendation and feedback workflow', async ({ page, re
     const path = (await paths.json()).find((item: { target_knowledge_point_id: number }) => item.target_knowledge_point_id === target.id)
     expect(path.stage_count).toBeGreaterThan(1)
     expect(path.nodes.at(-1).knowledge_point_id).toBe(target.id)
+    expect(path.dependency_graph.nodes.length).toBeGreaterThanOrEqual(path.nodes.length)
+    expect(path.dependency_graph.edges.length).toBeGreaterThan(0)
+    expect(path.dependency_graph.nodes.find((item: { is_target: boolean }) => item.is_target).knowledge_point_id).toBe(target.id)
     await page.locator('.path-node').first().click()
     await expect(nodeDialog).toBeVisible()
     const exerciseResponse = page.waitForResponse(response =>

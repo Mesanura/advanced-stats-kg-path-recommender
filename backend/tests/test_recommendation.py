@@ -284,7 +284,58 @@ def test_student_recommendation_api_returns_stage_contract(
     )
 
     assert response.status_code == 200
-    assert response.json()["stage_count"] == 3
-    assert response.json()["length_exception"] == "staged_dependency"
-    assert max(item["stage"] for item in response.json()["nodes"]) == 3
-    assert client.get("/api/v1/recommendations/me").status_code == 200
+    payload = response.json()
+    assert payload["stage_count"] == 3
+    assert payload["length_exception"] == "staged_dependency"
+    assert max(item["stage"] for item in payload["nodes"]) == 3
+
+    graph = graph_from_db(db_session)
+    expected_ids = nx.ancestors(graph, target.id) | {target.id}
+    dependency_graph = payload["dependency_graph"]
+    assert {item["knowledge_point_id"] for item in dependency_graph["nodes"]} == expected_ids
+    assert {
+        (item["prerequisite_id"], item["knowledge_point_id"])
+        for item in dependency_graph["edges"]
+    } == set(graph.subgraph(expected_ids).edges)
+    assert next(
+        item for item in dependency_graph["nodes"] if item["knowledge_point_id"] == target.id
+    )["is_target"] is True
+
+    saved = client.get("/api/v1/recommendations/me")
+    assert saved.status_code == 200
+    assert saved.json()[0]["dependency_graph"] == dependency_graph
+
+
+def test_dependency_graph_keeps_mastered_and_inactive_ancestors(
+    client: TestClient, db_session: Session
+) -> None:
+    student = setup_data(db_session)
+    target = point_by_code(db_session, "roc_auc")
+    ancestor = point_by_code(db_session, "descriptive_statistics")
+    set_mastery(db_session, student.id, default=0.2, overrides={ancestor.id: 0.9})
+    ancestor.is_active = False
+    db_session.commit()
+    user = db_session.get(User, student.user_id)
+    assert user is not None
+    client.post(
+        "/api/v1/auth/login",
+        json={"username": user.username, "password": "Student@123456"},
+    )
+
+    response = client.post(
+        "/api/v1/recommendations/me",
+        json={"target_knowledge_point_id": target.id},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    path_ids = {item["knowledge_point_id"] for item in payload["nodes"]}
+    graph_node = next(
+        item
+        for item in payload["dependency_graph"]["nodes"]
+        if item["knowledge_point_id"] == ancestor.id
+    )
+    assert ancestor.id not in path_ids
+    assert graph_node["is_active"] is False
+    assert graph_node["in_recommended_path"] is False
+    assert graph_node["mastery_score"] == pytest.approx(0.9)

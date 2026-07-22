@@ -6,12 +6,33 @@ import { computed, onMounted, ref } from 'vue'
 import { api } from '../api/client'
 import AppShell from '../components/AppShell.vue'
 import BaseChart from '../components/BaseChart.vue'
+import DependencyDag from '../components/DependencyDag.vue'
 import type { AbilityDimension } from '../types/knowledge'
-import type { BehaviorFeedback, LearningPath, PathNode, StudentDashboardData } from '../types/student'
+import type {
+  BehaviorFeedback,
+  DependencyGraphNode,
+  LearningPath,
+  PathNode,
+  PathNodeStatus,
+  StudentDashboardData,
+} from '../types/student'
+
+interface SelectedNodeDetails {
+  sequence?: number
+  knowledge_point_id: number
+  name: string
+  difficulty: number
+  resource_url: string
+  prerequisites: string[]
+  status?: PathNodeStatus
+  mastery_score: number
+  is_active: boolean
+  can_record_progress: boolean
+}
 
 const dashboard = ref<StudentDashboardData>()
 const selectedTarget = ref<number>()
-const selectedNode = ref<PathNode>()
+const selectedNode = ref<SelectedNodeDetails>()
 const drawer = ref(false)
 const generating = ref(false)
 const visitMinutes = ref(10)
@@ -64,7 +85,30 @@ async function generatePath(): Promise<void> {
   finally { generating.value = false }
 }
 
-function openNode(node: PathNode): void { selectedNode.value = node; drawer.value = true }
+function openNode(node: PathNode): void {
+  selectedNode.value = { ...node, is_active: true, can_record_progress: true }
+  drawer.value = true
+}
+function openDependencyNode(node: DependencyGraphNode): void {
+  const pathNode = currentPath.value?.nodes.find(
+    item => item.knowledge_point_id === node.knowledge_point_id,
+  )
+  if (pathNode && node.is_active) {
+    openNode(pathNode)
+    return
+  }
+  selectedNode.value = {
+    knowledge_point_id: node.knowledge_point_id,
+    name: node.name,
+    difficulty: node.difficulty,
+    resource_url: node.resource_url,
+    prerequisites: node.prerequisites,
+    mastery_score: node.mastery_score,
+    is_active: node.is_active,
+    can_record_progress: false,
+  }
+  drawer.value = true
+}
 function showUpdatedPath(path: LearningPath): void {
   if (!dashboard.value) return
   dashboard.value = {
@@ -77,7 +121,7 @@ function showUpdatedPath(path: LearningPath): void {
   selectedTarget.value = path.target_knowledge_point_id
 }
 async function submitFeedback(type: 'visit' | 'video' | 'exercise'): Promise<void> {
-  if (!selectedNode.value) return
+  if (!selectedNode.value?.can_record_progress) return
   feedbackLoading.value = true
   try {
     let feedback: BehaviorFeedback
@@ -127,10 +171,15 @@ onMounted(load)
         </div>
         <el-empty v-else description="暂无学习路径" :image-size="80" />
       </section>
+
+      <section v-if="currentPath" class="dependency-section">
+        <div class="panel-heading"><h2>目标前置依赖图</h2><span>{{ currentPath.dependency_graph.nodes.length }} 个节点 · {{ currentPath.dependency_graph.edges.length }} 条关系</span></div>
+        <DependencyDag :data="currentPath.dependency_graph" @select-node="openDependencyNode" />
+      </section>
     </main>
 
     <el-drawer v-model="drawer" title="知识点详情" size="380px">
-      <template v-if="selectedNode"><p class="section-label">STEP {{ selectedNode.sequence }}</p><h2>{{ selectedNode.name }}</h2><div class="detail-list"><div><span>当前掌握度</span><strong>{{ Math.round(selectedNode.mastery_score * 100) }}%</strong></div><div><span>难度</span><strong>{{ selectedNode.difficulty }} / 5</strong></div></div><h3>前置条件</h3><div class="prerequisite-list"><el-tag v-for="item in selectedNode.prerequisites" :key="item" effect="plain">{{ item }}</el-tag><span v-if="!selectedNode.prerequisites.length">基础知识点</span></div><el-link class="resource-link" type="primary" :href="selectedNode.resource_url" target="_blank" :icon="Link">打开学习资源</el-link><el-divider /><h3>学习进展</h3><div class="feedback-control"><span>访问时长</span><el-input-number v-model="visitMinutes" :min="1" :max="120" /><el-button :loading="feedbackLoading" @click="submitFeedback('visit')">记录</el-button></div><div class="feedback-control vertical"><span>视频进度 {{ videoProgress }}%</span><el-slider v-model="videoProgress" :min="0" :max="100" /><el-button :loading="feedbackLoading" @click="submitFeedback('video')">更新进度</el-button></div><div class="feedback-control vertical"><span>练习结果</span><el-segmented v-model="exerciseCorrect" :options="[{label:'正确',value:true},{label:'错误',value:false}]" /><el-button type="primary" :loading="feedbackLoading" @click="submitFeedback('exercise')">提交结果</el-button></div></template>
+      <template v-if="selectedNode"><p class="section-label">{{ selectedNode.sequence ? `STEP ${selectedNode.sequence}` : 'DEPENDENCY NODE' }}</p><div class="detail-title"><h2>{{ selectedNode.name }}</h2><el-tag v-if="!selectedNode.is_active" type="info" effect="plain">已停用</el-tag></div><div class="detail-list"><div><span>当前掌握度</span><strong>{{ Math.round(selectedNode.mastery_score * 100) }}%</strong></div><div><span>难度</span><strong>{{ selectedNode.difficulty }} / 5</strong></div></div><h3>前置条件</h3><div class="prerequisite-list"><el-tag v-for="item in selectedNode.prerequisites" :key="item" effect="plain">{{ item }}</el-tag><span v-if="!selectedNode.prerequisites.length">基础知识点</span></div><el-link class="resource-link" type="primary" :href="selectedNode.resource_url" target="_blank" :icon="Link">打开学习资源</el-link><template v-if="selectedNode.can_record_progress"><el-divider /><h3>学习进展</h3><div class="feedback-control"><span>访问时长</span><el-input-number v-model="visitMinutes" :min="1" :max="120" /><el-button :loading="feedbackLoading" @click="submitFeedback('visit')">记录</el-button></div><div class="feedback-control vertical"><span>视频进度 {{ videoProgress }}%</span><el-slider v-model="videoProgress" :min="0" :max="100" /><el-button :loading="feedbackLoading" @click="submitFeedback('video')">更新进度</el-button></div><div class="feedback-control vertical"><span>练习结果</span><el-segmented v-model="exerciseCorrect" :options="[{label:'正确',value:true},{label:'错误',value:false}]" /><el-button type="primary" :loading="feedbackLoading" @click="submitFeedback('exercise')">提交结果</el-button></div></template></template>
     </el-drawer>
   </AppShell>
 </template>

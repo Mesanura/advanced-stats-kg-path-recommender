@@ -24,6 +24,26 @@ export interface PathNode {
   status: PathNodeStatus
   mastery_score: number
 }
+export interface DependencyGraphNode {
+  knowledge_point_id: number
+  name: string
+  difficulty: number
+  resource_url: string
+  prerequisites: string[]
+  is_active: boolean
+  mastery_score: number
+  mastery_status: MasteryStatus
+  in_recommended_path: boolean
+  is_target: boolean
+}
+export interface DependencyGraphEdge {
+  prerequisite_id: number
+  knowledge_point_id: number
+}
+export interface DependencyGraph {
+  nodes: DependencyGraphNode[]
+  edges: DependencyGraphEdge[]
+}
 export interface LearningPath {
   id: number
   student_id: number
@@ -36,6 +56,7 @@ export interface LearningPath {
   length_exception: 'target_mastered' | 'shallow_target' | 'staged_dependency' | null
   created_at: string
   nodes: PathNode[]
+  dependency_graph: DependencyGraph
 }
 export interface BehaviorFeedback {
   message: string

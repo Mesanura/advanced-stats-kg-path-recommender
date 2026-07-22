@@ -4,6 +4,7 @@ import { defineComponent, h } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from '../api/client'
+import DependencyDag from '../components/DependencyDag.vue'
 import StudentView from './StudentView.vue'
 
 vi.mock('../api/client', () => ({
@@ -33,6 +34,17 @@ const dashboard = {
       { sequence: 1, stage: 1, knowledge_point_id: 1, name: '描述性统计', difficulty: 1, resource_url: 'https://example.com/1', prerequisites: [], status: 'recommended', mastery_score: 0.2 },
       { sequence: 2, stage: 2, knowledge_point_id: 2, name: '支持向量机', difficulty: 5, resource_url: 'https://example.com/2', prerequisites: ['描述性统计'], status: 'target', mastery_score: 0.2 },
     ],
+    dependency_graph: {
+      nodes: [
+        { knowledge_point_id: 1, name: '描述性统计', difficulty: 1, resource_url: 'https://example.com/1', prerequisites: [], is_active: true, mastery_score: 0.2, mastery_status: 'weak', in_recommended_path: true, is_target: false },
+        { knowledge_point_id: 3, name: '概率论基础', difficulty: 2, resource_url: 'https://example.com/3', prerequisites: [], is_active: false, mastery_score: 0.9, mastery_status: 'mastered', in_recommended_path: false, is_target: false },
+        { knowledge_point_id: 2, name: '支持向量机', difficulty: 5, resource_url: 'https://example.com/2', prerequisites: ['描述性统计', '概率论基础'], is_active: true, mastery_score: 0.2, mastery_status: 'weak', in_recommended_path: true, is_target: true },
+      ],
+      edges: [
+        { prerequisite_id: 1, knowledge_point_id: 2 },
+        { prerequisite_id: 3, knowledge_point_id: 2 },
+      ],
+    },
   }],
 }
 
@@ -49,7 +61,7 @@ describe('StudentView', () => {
     const wrapper = mount(StudentView, {
       global: {
         plugins: [ElementPlus],
-        stubs: { AppShell: AppShellStub, BaseChart: true },
+        stubs: { AppShell: AppShellStub, BaseChart: true, DependencyDag: true },
       },
     })
     await flushPromises()
@@ -60,6 +72,8 @@ describe('StudentView', () => {
     expect(wrapper.text()).toContain('阶段 1 / 2')
     expect(wrapper.text()).toContain('阶段 2 / 2')
     expect(wrapper.findAll('.mastery-cell')).toHaveLength(1)
+    expect(wrapper.text()).toContain('目标前置依赖图')
+    expect(wrapper.findComponent(DependencyDag).props('data').nodes).toHaveLength(3)
 
     wrapper.findComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', 2)
     await flushPromises()
@@ -71,6 +85,33 @@ describe('StudentView', () => {
 
     expect(api.post).toHaveBeenCalledWith('/recommendations/me', { target_knowledge_point_id: 2 })
     expect(api.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('opens graph-only dependency details without progress controls', async () => {
+    const wrapper = mount(StudentView, {
+      global: {
+        plugins: [ElementPlus],
+        stubs: {
+          AppShell: AppShellStub,
+          BaseChart: true,
+          DependencyDag: true,
+          ElDrawer: { template: '<div><slot /></div>' },
+        },
+      },
+    })
+    await flushPromises()
+
+    wrapper.findComponent(DependencyDag).vm.$emit(
+      'selectNode',
+      dashboard.current_paths[0].dependency_graph.nodes[1],
+    )
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('DEPENDENCY NODE')
+    expect(wrapper.text()).toContain('概率论基础')
+    expect(wrapper.text()).toContain('已停用')
+    expect(wrapper.text()).not.toContain('学习进展')
+    wrapper.unmount()
   })
 
   it('opens a path node and submits all feedback types', async () => {
@@ -88,7 +129,7 @@ describe('StudentView', () => {
     const wrapper = mount(StudentView, {
       global: {
         plugins: [ElementPlus],
-        stubs: { AppShell: AppShellStub, BaseChart: true, ElDrawer: { template: '<div><slot /></div>' } },
+        stubs: { AppShell: AppShellStub, BaseChart: true, DependencyDag: true, ElDrawer: { template: '<div><slot /></div>' } },
       },
     })
     await flushPromises()
@@ -129,7 +170,7 @@ describe('StudentView', () => {
       },
     })
     const wrapper = mount(StudentView, {
-      global: { plugins: [ElementPlus], stubs: { AppShell: AppShellStub, BaseChart: true } },
+      global: { plugins: [ElementPlus], stubs: { AppShell: AppShellStub, BaseChart: true, DependencyDag: true } },
     })
     await flushPromises()
 
