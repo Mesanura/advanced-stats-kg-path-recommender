@@ -65,7 +65,7 @@ async function captureReleaseScreenshot(page: Page, testInfo: TestInfo, name: st
   if (process.env.CAPTURE_RELEASE_SCREENSHOTS !== '1') return
   await mkdir(releaseScreenshotDirectory, { recursive: true })
   await page.screenshot({
-    path: join(releaseScreenshotDirectory, `v1.1.0-${name}-${testInfo.project.name}.png`),
+    path: join(releaseScreenshotDirectory, `v1.2.0-${name}-${testInfo.project.name}.png`),
     fullPage: false,
     animations: 'disabled',
   })
