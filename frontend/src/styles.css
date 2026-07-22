@@ -122,6 +122,13 @@ h1 { margin: 0; font-size: 30px; line-height: 1.3; letter-spacing: 0; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .el-dialog { max-width: calc(100vw - 32px); border-radius: 6px; }
 .student-diagnosis-drawer { max-width: 100vw; }
+.admin-user-drawer { max-width: 100vw; }
+.admin-class-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-class-list .el-tag { max-width: 100%; }
+.drawer-form .el-select { width: 100%; }
+.drawer-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.drawer-footer > div { display: flex; gap: 8px; }
+.drawer-footer-end { justify-content: flex-end; }
 .knowledge-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
 .knowledge-toolbar .el-input { width: min(320px, 100%); margin-left: auto; }
 .knowledge-toolbar .el-select { width: 190px; }
@@ -253,6 +260,9 @@ h1 { margin: 0; font-size: 30px; line-height: 1.3; letter-spacing: 0; }
   .path-node + .path-node::before { display: none; }
   .settings-group + .settings-group { border-top: 1px solid #e1e5e8; border-left: 0; }
   .form-grid { grid-template-columns: 1fr; gap: 0; }
+  .drawer-footer { align-items: stretch; flex-direction: column-reverse; }
+  .drawer-footer > div { justify-content: flex-end; }
+  .drawer-footer .el-button { margin-left: 0; }
   .analytics-panel, .attention-section, .mastery-section, .path-section { min-width: 0; }
   .data-table { max-width: 100%; }
 }

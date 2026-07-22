@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:8000'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -8,7 +10,7 @@ export default defineConfig({
   expect: { timeout: 8_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://127.0.0.1:8000',
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -21,7 +23,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/run.ps1',
-    url: 'http://127.0.0.1:8000/api/v1/health',
+    url: `${baseURL}/api/v1/health`,
     reuseExistingServer: true,
     timeout: 120_000,
   },

@@ -218,7 +218,7 @@ test('administrator opens account, knowledge and recommendation governance', asy
   await login(page, 'admin', 'Admin@123456')
   await expect(page).toHaveURL(/\/admin$/)
   await expect(page.getByRole('heading', { name: '用户与教学组织' })).toBeVisible()
-  await expect(page.getByText(/共 53 个账号/)).toBeVisible()
+  await expect(page.getByText(/共 \d+ 个账号/)).toBeVisible()
   const configResponse = await page.request.get('/api/v1/teacher/recommendation-config')
   expect(configResponse.ok()).toBeTruthy()
   const config = await configResponse.json()
@@ -240,5 +240,68 @@ test('administrator opens account, knowledge and recommendation governance', asy
     expect((await saved.json()).max_path_length).toBe(updatedMaximum)
   } finally {
     expect((await page.request.put('/api/v1/teacher/recommendation-config', { data: originalConfig })).ok()).toBeTruthy()
+  }
+})
+
+test('administrator views, edits and deletes a multi-class teacher', async ({ page }) => {
+  await login(page, 'admin', 'Admin@123456')
+  await expect(page).toHaveURL(/\/admin$/)
+
+  const classesResponse = await page.request.get('/api/v1/admin/classes')
+  expect(classesResponse.ok()).toBeTruthy()
+  const classrooms = await classesResponse.json() as Array<{
+    id: number
+    grade_name: string
+    name: string
+  }>
+  expect(classrooms.length).toBeGreaterThanOrEqual(2)
+
+  const accountSuffix = Date.now()
+  const displayName = `端到端教师${accountSuffix}`
+  const teacherUsername = `e2e_teacher_${accountSuffix}`
+  const created = await page.request.post('/api/v1/admin/users', {
+    data: {
+      username: teacherUsername,
+      display_name: displayName,
+      password: 'Teacher@123456',
+      role: 'teacher',
+      classroom_ids: [classrooms[0].id, classrooms[1].id],
+    },
+  })
+  expect(created.status()).toBe(201)
+  let teacherId: number | undefined = (await created.json()).id
+
+  try {
+    await page.reload()
+    const teacherRow = page.getByRole('row').filter({ hasText: teacherUsername })
+    await expect(teacherRow).toContainText(`${classrooms[0].grade_name} · ${classrooms[0].name}`)
+    await expect(teacherRow).toContainText(`${classrooms[1].grade_name} · ${classrooms[1].name}`)
+    await teacherRow.getByRole('button', { name: '详情' }).click()
+
+    const drawer = page.getByRole('dialog', { name: new RegExp(`${displayName}.*用户详情`) })
+    await expect(drawer).toBeVisible()
+    await expect(drawer).toContainText(`${classrooms[0].grade_name} · ${classrooms[0].name}`)
+    await expect(drawer).toContainText(`${classrooms[1].grade_name} · ${classrooms[1].name}`)
+    await drawer.getByRole('button', { name: '编辑' }).click()
+    await expect(drawer.getByLabel('角色')).toBeDisabled()
+    const firstClassLabel = `${classrooms[0].grade_name} · ${classrooms[0].name}`
+    await drawer.locator('.el-select__selection .el-tag')
+      .filter({ hasText: firstClassLabel })
+      .locator('.el-tag__close')
+      .click()
+    await drawer.getByRole('button', { name: '保存修改' }).click()
+    await expect(page.getByText('用户信息已更新')).toBeVisible()
+    await expect(drawer).not.toContainText(firstClassLabel)
+    await expect(drawer).toContainText(`${classrooms[1].grade_name} · ${classrooms[1].name}`)
+
+    await drawer.getByRole('button', { name: '删除用户' }).click()
+    const deleteDialog = page.getByRole('dialog', { name: '确认删除用户' })
+    await expect(deleteDialog).toContainText('此操作无法撤销')
+    await deleteDialog.getByRole('button', { name: '删除', exact: true }).click()
+    await expect(page.getByText('用户已删除')).toBeVisible()
+    await expect(teacherRow).toHaveCount(0)
+    teacherId = undefined
+  } finally {
+    if (teacherId) await page.request.delete(`/api/v1/admin/users/${teacherId}`)
   }
 })

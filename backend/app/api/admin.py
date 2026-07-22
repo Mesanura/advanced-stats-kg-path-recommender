@@ -29,6 +29,10 @@ router = APIRouter(
 
 def user_to_read(user: User) -> UserRead:
     profile = user.student_profile
+    teacher_classrooms = sorted(
+        (assignment.classroom for assignment in user.teacher_assignments),
+        key=lambda classroom: classroom.id,
+    )
     return UserRead(
         id=user.id,
         username=user.username,
@@ -38,7 +42,16 @@ def user_to_read(user: User) -> UserRead:
         student_no=profile.student_no if profile else None,
         classroom_id=profile.classroom_id if profile else None,
         classroom_name=profile.classroom.name if profile else None,
-        classroom_ids=sorted(item.classroom_id for item in user.teacher_assignments),
+        classroom_ids=[item.id for item in teacher_classrooms],
+        classrooms=[
+            ClassroomRead(
+                id=item.id,
+                grade_id=item.grade_id,
+                grade_name=item.grade.name,
+                name=item.name,
+            )
+            for item in teacher_classrooms
+        ],
     )
 
 
@@ -48,7 +61,9 @@ def get_user_or_404(db: Session, user_id: int) -> User:
         .where(User.id == user_id)
         .options(
             selectinload(User.student_profile).selectinload(StudentProfile.classroom),
-            selectinload(User.teacher_assignments),
+            selectinload(User.teacher_assignments)
+            .selectinload(TeacherClass.classroom)
+            .selectinload(Classroom.grade),
         )
     )
     if user is None:
@@ -119,7 +134,9 @@ def list_users(
     users = db.scalars(
         statement.options(
             selectinload(User.student_profile).selectinload(StudentProfile.classroom),
-            selectinload(User.teacher_assignments),
+            selectinload(User.teacher_assignments)
+            .selectinload(TeacherClass.classroom)
+            .selectinload(Classroom.grade),
         )
         .order_by(User.id)
         .offset((page - 1) * page_size)
@@ -131,6 +148,11 @@ def list_users(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/users/{user_id}", response_model=UserRead)
+def get_user(user_id: int, db: Session = Depends(get_db)) -> UserRead:
+    return user_to_read(get_user_or_404(db, user_id))
 
 
 @router.post("/users", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -168,18 +190,45 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)) -> UserRead:
 
 
 @router.patch("/users/{user_id}", response_model=UserRead)
-def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)) -> UserRead:
+def update_user(
+    user_id: int,
+    payload: UserUpdate,
+    current_user: User = Depends(require_roles(Role.ADMIN)),
+    db: Session = Depends(get_db),
+) -> UserRead:
     user = get_user_or_404(db, user_id)
+    if payload.username is not None:
+        duplicate = db.scalar(
+            select(User).where(User.username == payload.username, User.id != user.id)
+        )
+        if duplicate is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="用户名已存在")
+        user.username = payload.username
     if payload.display_name is not None:
         user.display_name = payload.display_name
     if payload.is_active is not None:
+        if user.id == current_user.id and not payload.is_active:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="不能停用当前管理员")
         user.is_active = payload.is_active
+    if payload.student_no is not None:
+        if user.role != Role.STUDENT or user.student_profile is None:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="仅学生可修改学号")
+        duplicate_profile = db.scalar(
+            select(StudentProfile).where(
+                StudentProfile.student_no == payload.student_no,
+                StudentProfile.user_id != user.id,
+            )
+        )
+        if duplicate_profile is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="学号已存在")
+        user.student_profile.student_no = payload.student_no
     if payload.classroom_id is not None:
         if user.role != Role.STUDENT or user.student_profile is None:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="仅学生可调整班级")
-        if db.get(Classroom, payload.classroom_id) is None:
+        classroom = db.get(Classroom, payload.classroom_id)
+        if classroom is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="班级不存在")
-        user.student_profile.classroom_id = payload.classroom_id
+        user.student_profile.classroom = classroom
     if payload.classroom_ids is not None:
         if user.role != Role.TEACHER:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="仅教师可分配班级")
@@ -189,6 +238,20 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
         user.teacher_assignments = [TeacherClass(classroom_id=item.id) for item in classrooms]
     db.commit()
     return user_to_read(get_user_or_404(db, user.id))
+
+
+@router.delete("/users/{user_id}", response_model=MessageResponse)
+def delete_user(
+    user_id: int,
+    current_user: User = Depends(require_roles(Role.ADMIN)),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    user = get_user_or_404(db, user_id)
+    if user.id == current_user.id:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="不能删除当前管理员")
+    db.delete(user)
+    db.commit()
+    return MessageResponse(message="用户已删除")
 
 
 @router.post("/users/{user_id}/reset-password", response_model=MessageResponse)

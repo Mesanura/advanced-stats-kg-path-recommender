@@ -12,6 +12,6 @@ export interface ManagedUser {
   classroom_id: number | null
   classroom_name: string | null
   classroom_ids: number[]
+  classrooms: Classroom[]
 }
 export interface PaginatedUsers { items: ManagedUser[]; total: number; page: number; page_size: number }
-

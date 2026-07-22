@@ -45,7 +45,11 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    username: str | None = Field(
+        default=None, pattern=r"^[A-Za-z0-9_.-]+$", min_length=3, max_length=80
+    )
     display_name: str | None = Field(default=None, min_length=2, max_length=80)
+    student_no: str | None = Field(default=None, min_length=1, max_length=30)
     is_active: bool | None = None
     classroom_id: int | None = None
     classroom_ids: list[int] | None = None
@@ -65,6 +69,7 @@ class UserRead(BaseModel):
     classroom_id: int | None = None
     classroom_name: str | None = None
     classroom_ids: list[int] = Field(default_factory=list)
+    classrooms: list[ClassroomRead] = Field(default_factory=list)
 
 
 class PaginatedUsers(BaseModel):
@@ -72,4 +77,3 @@ class PaginatedUsers(BaseModel):
     total: int
     page: int
     page_size: int
-
