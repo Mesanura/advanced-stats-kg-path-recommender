@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 from app.enums import MasteryStatus
+from app.schemas.recommendation import LearningPathRead
 
 
 class VisitCreate(BaseModel):
@@ -24,4 +25,4 @@ class BehaviorFeedback(BaseModel):
     mastery_score: float
     mastery_status: MasteryStatus
     paths_marked_stale: int
-
+    updated_path: LearningPathRead | None = None

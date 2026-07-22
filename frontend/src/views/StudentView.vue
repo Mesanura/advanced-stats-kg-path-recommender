@@ -7,7 +7,7 @@ import { api } from '../api/client'
 import AppShell from '../components/AppShell.vue'
 import BaseChart from '../components/BaseChart.vue'
 import type { AbilityDimension } from '../types/knowledge'
-import type { LearningPath, PathNode, StudentDashboardData } from '../types/student'
+import type { BehaviorFeedback, LearningPath, PathNode, StudentDashboardData } from '../types/student'
 
 const dashboard = ref<StudentDashboardData>()
 const selectedTarget = ref<number>()
@@ -65,16 +65,33 @@ async function generatePath(): Promise<void> {
 }
 
 function openNode(node: PathNode): void { selectedNode.value = node; drawer.value = true }
+function showUpdatedPath(path: LearningPath): void {
+  if (!dashboard.value) return
+  dashboard.value = {
+    ...dashboard.value,
+    current_paths: [
+      path,
+      ...dashboard.value.current_paths.filter(item => item.target_knowledge_point_id !== path.target_knowledge_point_id),
+    ],
+  }
+  selectedTarget.value = path.target_knowledge_point_id
+}
 async function submitFeedback(type: 'visit' | 'video' | 'exercise'): Promise<void> {
   if (!selectedNode.value) return
   feedbackLoading.value = true
   try {
-    if (type === 'visit') await api.post('/students/me/behavior/visits', { knowledge_point_id: selectedNode.value.knowledge_point_id, duration_seconds: visitMinutes.value * 60 })
-    if (type === 'video') await api.put('/students/me/behavior/video-progress', { knowledge_point_id: selectedNode.value.knowledge_point_id, progress_percent: videoProgress.value })
-    if (type === 'exercise') await api.post('/students/me/behavior/exercises', { knowledge_point_id: selectedNode.value.knowledge_point_id, is_correct: exerciseCorrect.value })
-    ElMessage.success('学习进展已更新，请重新生成路径')
+    let feedback: BehaviorFeedback
+    if (type === 'visit') feedback = (await api.post<BehaviorFeedback>('/students/me/behavior/visits', { knowledge_point_id: selectedNode.value.knowledge_point_id, duration_seconds: visitMinutes.value * 60 })).data
+    else if (type === 'video') feedback = (await api.put<BehaviorFeedback>('/students/me/behavior/video-progress', { knowledge_point_id: selectedNode.value.knowledge_point_id, progress_percent: videoProgress.value })).data
+    else feedback = (await api.post<BehaviorFeedback>('/students/me/behavior/exercises', { knowledge_point_id: selectedNode.value.knowledge_point_id, is_correct: exerciseCorrect.value })).data
     drawer.value = false
     await load()
+    if (feedback.updated_path) {
+      showUpdatedPath(feedback.updated_path)
+      ElMessage.success('练习结果已保存，学习路径已自动更新')
+    } else {
+      ElMessage.success('学习进展已更新，请重新生成路径')
+    }
   } catch { ElMessage.error('学习进展保存失败') }
   finally { feedbackLoading.value = false }
 }

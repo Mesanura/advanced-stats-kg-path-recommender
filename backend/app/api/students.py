@@ -24,6 +24,7 @@ from app.schemas.behavior import BehaviorFeedback, ExerciseCreate, VideoProgress
 from app.schemas.knowledge import KnowledgePointRead
 from app.schemas.student import DimensionMastery, StudentDashboard
 from app.services.diagnosis import recompute_bkt_mastery, recompute_rule_mastery
+from app.services.recommendation import recommend_path
 
 router = APIRouter(prefix="/students", tags=["students"])
 
@@ -47,6 +48,7 @@ def finish_feedback(
     student_id: int,
     point_id: int,
     message: str,
+    regenerate_path: bool = False,
 ) -> BehaviorFeedback:
     config = db.get(RecommendationConfig, 1)
     algorithm = config.diagnostic_algorithm if config else MasteryAlgorithm.BKT
@@ -60,21 +62,41 @@ def finish_feedback(
     assert result is not None
     paths = list(
         db.scalars(
-            select(LearningPath).where(
+            select(LearningPath)
+            .where(
                 LearningPath.student_id == student_id,
                 LearningPath.state == PathState.CURRENT,
             )
+            .options(selectinload(LearningPath.items))
+            .order_by(LearningPath.created_at.desc(), LearningPath.id.desc())
         )
+    )
+    source_path = next(
+        (
+            path
+            for path in paths
+            if regenerate_path and any(item.knowledge_point_id == point_id for item in path.items)
+        ),
+        None,
     )
     for path in paths:
         path.state = PathState.STALE
-    db.commit()
+    updated_path = None
+    if source_path is not None:
+        updated_path = recommend_path(
+            db,
+            student_id=student_id,
+            target_id=source_path.target_knowledge_point_id,
+        )
+    else:
+        db.commit()
     return BehaviorFeedback(
-        message=message,
+        message=f"{message}，学习路径已更新" if updated_path is not None else message,
         knowledge_point_id=point_id,
         mastery_score=result.score,
         mastery_status=result.status,
         paths_marked_stale=len(paths),
+        updated_path=path_to_read(db, updated_path) if updated_path is not None else None,
     )
 
 
@@ -99,7 +121,7 @@ def dashboard(
             LearningPath.state == PathState.CURRENT,
         )
         .options(selectinload(LearningPath.items))
-        .order_by(LearningPath.created_at.desc())
+        .order_by(LearningPath.created_at.desc(), LearningPath.id.desc())
     )
     targets = list(
         db.scalars(
@@ -180,6 +202,7 @@ def record_exercise(
         student_id=student.id,
         point_id=payload.knowledge_point_id,
         message="练习结果已保存",
+        regenerate_path=True,
     )
 
 

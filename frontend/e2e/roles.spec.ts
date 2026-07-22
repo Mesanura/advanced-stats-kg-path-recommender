@@ -115,11 +115,20 @@ test('student completes recommendation and feedback workflow', async ({ page, re
     const path = (await paths.json()).find((item: { target_knowledge_point_id: number }) => item.target_knowledge_point_id === target.id)
     expect(path.stage_count).toBeGreaterThan(1)
     expect(path.nodes.at(-1).knowledge_point_id).toBe(target.id)
-    const exercise = await page.request.post('/api/v1/students/me/behavior/exercises', {
-      data: { knowledge_point_id: path.nodes[0].knowledge_point_id, is_correct: true },
-    })
-    expect(exercise.ok()).toBeTruthy()
-    expect((await exercise.json()).paths_marked_stale).toBeGreaterThanOrEqual(1)
+    await page.locator('.path-node').first().click()
+    await expect(nodeDialog).toBeVisible()
+    const exerciseResponse = page.waitForResponse(response =>
+      response.url().endsWith('/api/v1/students/me/behavior/exercises')
+      && response.request().method() === 'POST',
+    )
+    await nodeDialog.getByRole('button', { name: '提交结果' }).click()
+    const exerciseFeedback = await (await exerciseResponse).json()
+    expect(exerciseFeedback.paths_marked_stale).toBeGreaterThanOrEqual(1)
+    expect(exerciseFeedback.updated_path.id).not.toBe(path.id)
+    expect(exerciseFeedback.updated_path.target_knowledge_point_id).toBe(target.id)
+    expect(exerciseFeedback.updated_path.state).toBe('current')
+    await expect(page.getByText('练习结果已保存，学习路径已自动更新')).toBeVisible()
+    await expect(page.locator('.path-section .panel-heading')).toContainText(path.target_name)
   } finally {
     expect((await request.put('/api/v1/teacher/recommendation-config', { data: originalConfig })).ok()).toBeTruthy()
   }

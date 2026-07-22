@@ -74,8 +74,17 @@ describe('StudentView', () => {
   })
 
   it('opens a path node and submits all feedback types', async () => {
-    vi.mocked(api.post).mockResolvedValue({ data: {} })
-    vi.mocked(api.put).mockResolvedValue({ data: {} })
+    const updatedPath = {
+      ...dashboard.current_paths[0],
+      id: 10,
+      stage_count: 1,
+      length_exception: null,
+      nodes: [{ ...dashboard.current_paths[0].nodes[1], sequence: 1, stage: 1, mastery_score: 0.35 }],
+    }
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { updated_path: null } })
+      .mockResolvedValueOnce({ data: { updated_path: updatedPath } })
+    vi.mocked(api.put).mockResolvedValue({ data: { updated_path: null } })
     const wrapper = mount(StudentView, {
       global: {
         plugins: [ElementPlus],
@@ -98,6 +107,8 @@ describe('StudentView', () => {
     expect(api.post).toHaveBeenCalledWith('/students/me/behavior/visits', { knowledge_point_id: 1, duration_seconds: 720 })
     expect(api.put).toHaveBeenCalledWith('/students/me/behavior/video-progress', { knowledge_point_id: 1, progress_percent: 80 })
     expect(api.post).toHaveBeenCalledWith('/students/me/behavior/exercises', { knowledge_point_id: 1, is_correct: false })
+    expect(wrapper.find('.path-section .path-node strong').text()).toBe('支持向量机')
+    expect(wrapper.find('.path-section').text()).toContain('阶段 1 / 1')
     wrapper.unmount()
   })
 

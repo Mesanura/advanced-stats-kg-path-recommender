@@ -37,6 +37,14 @@ export interface LearningPath {
   created_at: string
   nodes: PathNode[]
 }
+export interface BehaviorFeedback {
+  message: string
+  knowledge_point_id: number
+  mastery_score: number
+  mastery_status: MasteryStatus
+  paths_marked_stale: number
+  updated_path: LearningPath | null
+}
 export interface StudentDashboardData {
   student_id: number
   student_no: string
