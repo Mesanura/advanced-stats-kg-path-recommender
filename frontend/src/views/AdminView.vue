@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Delete, Edit, Key, Plus, Search, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 import { api } from '../api/client'
 import AppShell from '../components/AppShell.vue'
@@ -39,6 +39,9 @@ const sectionNames = { users: '用户与班级', knowledge: '知识图谱', sett
 const defaultPasswords: Record<Role, string> = {
   student: 'Student@123456', teacher: 'Teacher@123456', admin: 'Admin@123456',
 }
+watch(() => form.role, selectedRole => {
+  form.password = defaultPasswords[selectedRole]
+})
 const classOptions = computed(() => classrooms.value.map(item => ({
   label: `${item.grade_name} · ${item.name}`, value: item.id,
 })))

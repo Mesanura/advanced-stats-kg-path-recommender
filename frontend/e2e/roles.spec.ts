@@ -256,6 +256,18 @@ test('administrator views, edits and deletes a multi-class teacher', async ({ pa
   await login(page, 'admin', 'Admin@123456')
   await expect(page).toHaveURL(/\/admin$/)
 
+  await page.getByRole('button', { name: '新增账号' }).click()
+  const createDialog = page.getByRole('dialog', { name: '新增账号' })
+  const initialPassword = createDialog.getByLabel('初始密码')
+  await expect(initialPassword).toHaveValue('Student@123456')
+  await createDialog.getByText('教师', { exact: true }).click()
+  await expect(initialPassword).toHaveValue('Teacher@123456')
+  await createDialog.getByText('管理员', { exact: true }).click()
+  await expect(initialPassword).toHaveValue('Admin@123456')
+  await createDialog.getByText('学生', { exact: true }).click()
+  await expect(initialPassword).toHaveValue('Student@123456')
+  await createDialog.getByRole('button', { name: '取消' }).click()
+
   const classesResponse = await page.request.get('/api/v1/admin/classes')
   expect(classesResponse.ok()).toBeTruthy()
   const classrooms = await classesResponse.json() as Array<{

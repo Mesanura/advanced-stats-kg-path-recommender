@@ -145,6 +145,29 @@ describe('AdminView', () => {
     wrapper.unmount()
   })
 
+  it('updates the initial password when the create role changes', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    const setup = (wrapper.vm as any).$.setupState
+    setup.openCreateUser()
+    await flushPromises()
+
+    expect(setup.form.password).toBe('Student@123456')
+
+    setup.form.role = 'teacher'
+    await flushPromises()
+    expect(setup.form.password).toBe('Teacher@123456')
+
+    setup.form.role = 'admin'
+    await flushPromises()
+    expect(setup.form.password).toBe('Admin@123456')
+
+    setup.form.role = 'student'
+    await flushPromises()
+    expect(setup.form.password).toBe('Student@123456')
+    wrapper.unmount()
+  })
+
   it('loads the detail drawer, edits assignments and deletes the user', async () => {
     const wrapper = mountView()
     await flushPromises()
